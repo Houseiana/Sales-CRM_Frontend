@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AlertCircle, Flame, Send, Plus, Check, Trash2 } from "lucide-react";
+import {
+  Plus, Check, Trash2, Clock, CheckCircle2, ListTodo,
+  AlertCircle, Flame, Send, Phone, FileText, Users,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +17,100 @@ import type { LucideIcon } from "lucide-react";
 
 const PRIORITIES = ["Urgent", "High", "Medium", "Low"];
 
+/* ── Category helper ── */
+function guessCategory(title: string): string {
+  const t = title.toLowerCase();
+  if (t.includes("call")) return "Call";
+  if (t.includes("proposal") || t.includes("send")) return "Proposal";
+  if (t.includes("meeting") || t.includes("prep")) return "Meeting";
+  if (t.includes("review") || t.includes("audit")) return "Review";
+  if (t.includes("follow")) return "Follow-up";
+  return "Task";
+}
+
+const categoryIcons: Record<string, LucideIcon> = {
+  Call: Phone,
+  Proposal: FileText,
+  Meeting: Users,
+  Review: ListTodo,
+  "Follow-up": Send,
+  Task: CheckCircle2,
+};
+
+/* ── Task Row Component ── */
+function TaskRow({
+  task,
+  onToggle,
+  onDelete,
+  canDelete,
+}: {
+  task: SalesTaskItem;
+  onToggle: () => void;
+  onDelete: () => void;
+  canDelete: boolean;
+}) {
+  const category = guessCategory(task.title);
+  const CategoryIcon = categoryIcons[category] || CheckCircle2;
+  const dueStr = task.dueDate
+    ? new Date(task.dueDate).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })
+    : "";
+  const timeStr = task.dueDate
+    ? new Date(task.dueDate).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
+    : "";
+
+  return (
+    <div className={`group flex items-start gap-3 rounded-2xl border border-stone-200 p-4 transition hover:bg-stone-50/70 ${task.isCompleted ? "opacity-60" : ""}`}>
+      {/* Checkbox */}
+      <button
+        onClick={onToggle}
+        className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-lg border transition ${
+          task.isCompleted
+            ? "border-emerald-300 bg-emerald-100 text-emerald-700"
+            : "border-stone-300 hover:border-stone-500"
+        }`}
+      >
+        {task.isCompleted && <Check className="h-3 w-3" />}
+      </button>
+
+      {/* Category Icon */}
+      <div className={`mt-0.5 rounded-xl p-2 ${task.isCompleted ? "bg-stone-100" : "bg-stone-950"}`}>
+        <CategoryIcon className={`h-3.5 w-3.5 ${task.isCompleted ? "text-stone-400" : "text-white"}`} />
+      </div>
+
+      {/* Content */}
+      <div className="min-w-0 flex-1">
+        <p className={`text-sm font-semibold ${task.isCompleted ? "text-stone-400 line-through" : "text-stone-950"}`}>
+          {task.title}
+        </p>
+        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-stone-500">
+          {task.owner && <span>{task.owner}</span>}
+          {dueStr && (
+            <span className="flex items-center gap-1">
+              <Clock className="h-3 w-3" /> {dueStr}{timeStr ? ` · ${timeStr}` : ""}
+            </span>
+          )}
+          {task.leadName && <span className="text-stone-400">Lead: {task.leadName}</span>}
+          <span className="rounded-full bg-stone-100 px-2 py-0.5 text-[11px] font-medium text-stone-600">{category}</span>
+        </div>
+      </div>
+
+      {/* Priority + Delete */}
+      <div className="flex shrink-0 items-center gap-1.5">
+        <ScoreBadge value={task.isCompleted ? "Done" : task.priority} />
+        {canDelete && (
+          <button
+            onClick={onDelete}
+            className="rounded-lg p-1 text-stone-300 opacity-0 transition group-hover:opacity-100 hover:bg-rose-50 hover:text-rose-500"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ── Main View ── */
 export function TasksView() {
   const { canEdit, canDelete } = useAuth();
   const [tasks, setTasks] = useState<SalesTaskItem[]>([]);
@@ -56,101 +153,172 @@ export function TasksView() {
   const completed = tasks.filter((t) => t.isCompleted);
   const today = new Date().toDateString();
   const todayTasks = pending.filter((t) => t.dueDate && new Date(t.dueDate).toDateString() === today);
-  const upcoming = pending.filter((t) => !t.dueDate || new Date(t.dueDate).toDateString() !== today);
+  const upcomingTasks = pending.filter((t) => !t.dueDate || new Date(t.dueDate).toDateString() !== today);
 
-  const sections: [string, SalesTaskItem[]][] = [
-    ["Today", todayTasks.length > 0 ? todayTasks : pending.slice(0, 4)],
-    ["Upcoming", upcoming],
-    ["Completed", completed],
+  const urgentCount = pending.filter((t) => t.priority === "Urgent").length;
+  const highCount = pending.filter((t) => t.priority === "High").length;
+
+  /* ── Summary Cards ── */
+  const summaryCards: [string, string, LucideIcon][] = [
+    ["Pending", String(pending.length), ListTodo],
+    ["Due Today", String(todayTasks.length), Clock],
+    ["Completed", String(completed.length), CheckCircle2],
   ];
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm text-stone-500">{pending.length} pending, {completed.length} completed</p>
-        </div>
-        {canEdit && (
-          <Button onClick={() => setShowCreate(true)} className="rounded-2xl bg-stone-950 text-white hover:bg-stone-800">
-            <Plus className="mr-2 h-4 w-4" /> New Task
-          </Button>
-        )}
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-        {sections.map(([section, items]) => (
-          <Card key={section} className="rounded-3xl border-stone-200/80 shadow-sm">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg text-stone-950">{section}</CardTitle>
-                <Badge className="rounded-full border border-stone-200 bg-white text-stone-700">{items.length}</Badge>
+      {/* Summary Row */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        {summaryCards.map(([title, value, Icon]) => (
+          <Card key={title} className="rounded-3xl border-stone-200/80 shadow-sm">
+            <CardContent className="flex items-center justify-between p-5">
+              <div>
+                <p className="text-sm text-stone-500">{title}</p>
+                <p className="mt-2 text-3xl font-semibold text-stone-950">{value}</p>
               </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {items.length === 0 && <p className="py-4 text-center text-sm text-stone-400">No tasks</p>}
-              {items.map((task) => (
-                <div key={task.id} className="rounded-2xl border border-stone-200 p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-start gap-3">
-                      <button onClick={() => handleToggle(task.id)}
-                        className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border ${task.isCompleted ? "border-emerald-300 bg-emerald-100 text-emerald-700" : "border-stone-300 hover:border-stone-400"}`}>
-                        {task.isCompleted && <Check className="h-3 w-3" />}
-                      </button>
-                      <div>
-                        <p className={`font-medium ${task.isCompleted ? "text-stone-400 line-through" : "text-stone-950"}`}>{task.title}</p>
-                        <p className="mt-1 text-sm text-stone-500">
-                          {task.owner}{task.dueDate ? ` · ${new Date(task.dueDate).toLocaleDateString()}` : ""}
-                        </p>
-                        {task.leadName && <p className="text-xs text-stone-400">Lead: {task.leadName}</p>}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <ScoreBadge value={task.isCompleted ? "Done" : task.priority} />
-                      {canDelete && (
-                        <button onClick={() => handleDelete(task.id)} className="rounded-lg p-1 text-stone-300 hover:bg-rose-50 hover:text-rose-500">
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
+              <div className="rounded-2xl bg-yellow-50 p-3 ring-1 ring-yellow-100">
+                <Icon className="h-5 w-5 text-stone-900" />
+              </div>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[0.9fr_1.1fr]">
+      {/* Main Layout: Task List + Right Rail */}
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.3fr_0.7fr]">
+
+        {/* ── Task List ── */}
         <Card className="rounded-3xl border-stone-200/80 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-lg text-stone-950">Follow-up priorities</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {([
-              [`${tasks.filter((t) => !t.isCompleted && t.priority === "Urgent").length} urgent tasks`, "Immediate action needed", AlertCircle],
-              [`${tasks.filter((t) => !t.isCompleted && t.priority === "High").length} high priority`, "Schedule today", Flame],
-              [`${completed.length} completed`, "Great progress", Send],
-            ] as [string, string, LucideIcon][]).map(([title, text, Icon]) => (
-              <div key={title} className="flex items-start gap-3 rounded-2xl border border-stone-200 p-4">
-                <div className="rounded-2xl bg-stone-100 p-2"><Icon className="h-4 w-4 text-stone-700" /></div>
-                <div><p className="font-medium text-stone-950">{title}</p><p className="mt-1 text-sm text-stone-500">{text}</p></div>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-lg text-stone-950">Task list</CardTitle>
+                <p className="mt-1 text-sm text-stone-500">All follow-ups, calls, proposals, and actions in one view</p>
               </div>
-            ))}
+              {canEdit && (
+                <Button onClick={() => setShowCreate(true)} className="rounded-2xl bg-stone-950 text-white hover:bg-stone-800">
+                  <Plus className="mr-2 h-4 w-4" /> New Task
+                </Button>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            {loading ? (
+              <p className="py-12 text-center text-sm text-stone-500">Loading tasks...</p>
+            ) : (
+              <>
+                {/* Today */}
+                {(todayTasks.length > 0 || pending.length > 0) && (
+                  <div>
+                    <div className="mb-3 flex items-center gap-2">
+                      <p className="text-sm font-semibold text-stone-950">Today</p>
+                      <Badge className="rounded-full border border-stone-200 bg-white text-stone-600">
+                        {todayTasks.length > 0 ? todayTasks.length : pending.length}
+                      </Badge>
+                    </div>
+                    <div className="space-y-2">
+                      {(todayTasks.length > 0 ? todayTasks : pending.slice(0, 5)).map((task) => (
+                        <TaskRow key={task.id} task={task} onToggle={() => handleToggle(task.id)} onDelete={() => handleDelete(task.id)} canDelete={canDelete} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Upcoming */}
+                {upcomingTasks.length > 0 && (
+                  <div>
+                    <div className="mb-3 flex items-center gap-2">
+                      <p className="text-sm font-semibold text-stone-950">Upcoming</p>
+                      <Badge className="rounded-full border border-stone-200 bg-white text-stone-600">{upcomingTasks.length}</Badge>
+                    </div>
+                    <div className="space-y-2">
+                      {upcomingTasks.map((task) => (
+                        <TaskRow key={task.id} task={task} onToggle={() => handleToggle(task.id)} onDelete={() => handleDelete(task.id)} canDelete={canDelete} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Completed */}
+                {completed.length > 0 && (
+                  <div>
+                    <div className="mb-3 flex items-center gap-2">
+                      <p className="text-sm font-semibold text-stone-950">Completed</p>
+                      <Badge className="rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700">{completed.length}</Badge>
+                    </div>
+                    <div className="space-y-2">
+                      {completed.map((task) => (
+                        <TaskRow key={task.id} task={task} onToggle={() => handleToggle(task.id)} onDelete={() => handleDelete(task.id)} canDelete={canDelete} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {tasks.length === 0 && (
+                  <p className="py-12 text-center text-sm text-stone-400">No tasks yet. Create your first task to get started.</p>
+                )}
+              </>
+            )}
           </CardContent>
         </Card>
 
-        <Card className="rounded-3xl border-stone-200/80 shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-lg text-stone-950">Daily execution rhythm</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {["09:00 - Lead review and assignment", "11:00 - Owner follow-up block", "14:00 - Proposal and negotiation window", "17:00 - End-of-day performance check"].map((item) => (
-              <div key={item} className="rounded-2xl bg-stone-50 px-4 py-3 text-sm font-medium text-stone-800">{item}</div>
-            ))}
-          </CardContent>
-        </Card>
+        {/* ── Right Rail ── */}
+        <div className="space-y-4">
+          {/* Focus Today */}
+          <Card className="rounded-3xl border-stone-200/80 shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-lg text-stone-950">Focus today</CardTitle>
+              <p className="text-sm text-stone-500">What must happen for pipeline health</p>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-start gap-3 rounded-2xl border border-stone-200 p-4">
+                <div className="rounded-xl bg-rose-100 p-2"><AlertCircle className="h-4 w-4 text-rose-700" /></div>
+                <div>
+                  <p className="font-medium text-stone-950">{urgentCount} urgent task{urgentCount !== 1 ? "s" : ""}</p>
+                  <p className="mt-0.5 text-sm text-stone-500">Immediate action needed</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 rounded-2xl border border-stone-200 p-4">
+                <div className="rounded-xl bg-orange-100 p-2"><Flame className="h-4 w-4 text-orange-700" /></div>
+                <div>
+                  <p className="font-medium text-stone-950">{highCount} high-priority task{highCount !== 1 ? "s" : ""}</p>
+                  <p className="mt-0.5 text-sm text-stone-500">Complete today</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 rounded-2xl border border-stone-200 p-4">
+                <div className="rounded-xl bg-emerald-100 p-2"><CheckCircle2 className="h-4 w-4 text-emerald-700" /></div>
+                <div>
+                  <p className="font-medium text-stone-950">{completed.length} completed</p>
+                  <p className="mt-0.5 text-sm text-stone-500">{completed.length > 0 ? "Great progress" : "Get started"}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Execution Rhythm */}
+          <Card className="rounded-3xl border-stone-200/80 shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-lg text-stone-950">Execution rhythm</CardTitle>
+              <p className="text-sm text-stone-500">Daily operational cadence</p>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {[
+                ["09:00", "Lead review and assignment"],
+                ["11:00", "Owner follow-up block"],
+                ["14:00", "Proposal and negotiation window"],
+                ["17:00", "End-of-day performance check"],
+              ].map(([time, label]) => (
+                <div key={time} className="flex items-center gap-3 rounded-2xl bg-stone-50 px-4 py-3">
+                  <span className="text-sm font-semibold text-stone-950">{time}</span>
+                  <span className="text-sm text-stone-600">{label}</span>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
+      {/* Create Task Modal */}
       <Modal open={showCreate} onClose={() => setShowCreate(false)} title="Create new task">
         <form onSubmit={handleCreate} className="space-y-4">
           <div>
