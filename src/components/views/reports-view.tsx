@@ -1,0 +1,100 @@
+"use client";
+
+import { UserRound, ChartNoAxesColumn } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { MiniBarChart, MiniLineChart } from "@/components/charts";
+import { reports } from "@/lib/data";
+
+export function ReportsView() {
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+        <Card className="rounded-3xl border-stone-200/80 shadow-sm">
+          <CardHeader>
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <CardTitle className="text-lg text-stone-950">Lead flow this week</CardTitle>
+                <p className="mt-1 text-sm text-stone-500">
+                  Capture, qualification, and follow-up momentum
+                </p>
+              </div>
+              <Badge className="rounded-full border border-stone-200 bg-white text-stone-700">
+                7 Days
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <MiniBarChart />
+          </CardContent>
+        </Card>
+
+        <Card className="rounded-3xl border-stone-200/80 shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-lg text-stone-950">Conversion trend</CardTitle>
+            <p className="text-sm text-stone-500">
+              Weekly conversion rate from qualified to won
+            </p>
+          </CardHeader>
+          <CardContent>
+            <MiniLineChart />
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[0.55fr_0.45fr]">
+        <Card className="rounded-3xl border-stone-200/80 shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-lg text-stone-950">Lead sources</CardTitle>
+            <p className="text-sm text-stone-500">Top performing channels this month</p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {reports.sources.map(([source, value]) => (
+              <div key={source}>
+                <div className="mb-2 flex items-center justify-between text-sm">
+                  <span className="font-medium text-stone-800">{source}</span>
+                  <span className="text-stone-500">{value}</span>
+                </div>
+                <div className="h-2 rounded-full bg-stone-100">
+                  <div className="h-2 rounded-full bg-stone-900" style={{ width: value }} />
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        <Card className="rounded-3xl border-stone-200/80 shadow-sm">
+          <CardHeader>
+            <div className="flex items-center justify-between gap-3">
+              <CardTitle className="text-lg text-stone-950">Team performance</CardTitle>
+              <div className="rounded-2xl bg-stone-100 p-2">
+                <ChartNoAxesColumn className="h-4 w-4 text-stone-700" />
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {reports.team.map(([name, meta, winRate]) => (
+              <div
+                key={name}
+                className="flex items-center justify-between rounded-2xl border border-stone-200 p-4"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-stone-100">
+                    <UserRound className="h-5 w-5 text-stone-700" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-stone-900">{name}</p>
+                    <p className="text-sm text-stone-500">{meta}</p>
+                  </div>
+                </div>
+                <Badge className="rounded-full border border-emerald-200 bg-emerald-50 text-emerald-800">
+                  {winRate}
+                </Badge>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
