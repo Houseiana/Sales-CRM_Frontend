@@ -118,54 +118,105 @@ function AnalyticsSection({ reportsData }: { reportsData: typeof defaultReports 
   );
 }
 
+const SNAPSHOT_STAGE_META: Record<string, { objective: string; sla: string; tone: string }> = {
+  "New Lead": { objective: "Capture and verify", sla: "15 min response", tone: "stone" },
+  Contacted: { objective: "First contact and fit", sla: "Same day", tone: "amber" },
+  Qualified: { objective: "Validate budget and fit", sla: "Within 24h", tone: "yellow" },
+  Proposal: { objective: "Send offer or package", sla: "Within 24h", tone: "orange" },
+  Negotiation: { objective: "Align on terms", sla: "Daily touchpoint", tone: "emerald" },
+  Won: { objective: "Confirm and onboard", sla: "Immediate", tone: "green" },
+};
+
+const SNAPSHOT_COLORS: Record<string, string> = {
+  stone: "border-stone-200 bg-stone-50", amber: "border-amber-200 bg-amber-50",
+  yellow: "border-yellow-200 bg-yellow-50", orange: "border-orange-200 bg-orange-50",
+  emerald: "border-emerald-200 bg-emerald-50", green: "border-lime-200 bg-lime-50",
+};
+
 function PipelineBoardCompact({ pipelineData }: { pipelineData: Record<string, { name: string; badge: string; score: string }[]> }) {
+  const stages = Object.entries(pipelineData);
+  const totalLeads = stages.reduce((s, [, items]) => s + items.length, 0);
+
   return (
     <Card className="rounded-3xl border-stone-200/80 shadow-sm">
       <CardHeader>
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <CardTitle className="text-lg text-stone-950">Pipeline snapshot</CardTitle>
+            <CardTitle className="text-lg text-stone-950">Sales funnel snapshot</CardTitle>
             <p className="mt-1 text-sm text-stone-500">
-              Owner, guest, and investor lead progression
+              Move opportunities through clear gates instead of a loose lead list.
             </p>
           </div>
-          <Button variant="outline" className="rounded-2xl border-stone-200">
-            View Full Pipeline
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Badge className="rounded-full border border-stone-200 bg-white text-stone-700">Stage-based</Badge>
+            <Badge className="rounded-full border border-stone-200 bg-white text-stone-700">SLA driven</Badge>
+          </div>
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="grid gap-4 xl:grid-cols-5">
-          {Object.entries(pipelineData).map(([stage, items]) => (
-            <div key={stage} className="rounded-3xl bg-stone-50 p-3">
-              <div className="mb-3 flex items-center justify-between px-1">
-                <div>
-                  <p className="text-sm font-semibold text-stone-900">{stage}</p>
-                  <p className="text-xs text-stone-500">{items.length} leads</p>
-                </div>
-                <CircleDot className="h-4 w-4 text-stone-400" />
-              </div>
-              <div className="space-y-3">
-                {items.map((item) => (
-                  <div
-                    key={item.name}
-                    className="rounded-2xl border border-stone-200 bg-white p-3 shadow-sm"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <p className="font-medium text-stone-900">{item.name}</p>
-                        <p className="mt-1 text-xs text-stone-500">{item.badge}</p>
-                      </div>
-                      <MoreHorizontal className="h-4 w-4 text-stone-400" />
-                    </div>
-                    <div className="mt-3">
-                      <ScoreBadge value={item.score} />
-                    </div>
+      <CardContent className="space-y-4">
+        {/* Stage Headers */}
+        <div className="grid gap-3 xl:grid-cols-5">
+          {stages.slice(0, 5).map(([stage, items], index) => {
+            const meta = SNAPSHOT_STAGE_META[stage] || { objective: "", sla: "", tone: "stone" };
+            const colorClass = SNAPSHOT_COLORS[meta.tone] || SNAPSHOT_COLORS.stone;
+            const share = totalLeads > 0 ? Math.round((items.length / totalLeads) * 100) : 0;
+            return (
+              <div key={stage} className={`rounded-2xl border p-3 ${colorClass}`}>
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] opacity-60">Stage {index + 1}</p>
+                    <p className="mt-0.5 text-sm font-semibold text-stone-900">{stage}</p>
                   </div>
-                ))}
+                  <span className="rounded-xl bg-white/70 px-2 py-0.5 text-sm font-semibold text-stone-900">{items.length}</span>
+                </div>
+                <p className="mt-1.5 text-xs text-stone-600">{meta.objective}</p>
+                <div className="mt-2 grid grid-cols-2 gap-1.5">
+                  <div className="rounded-lg bg-white/70 px-2 py-1">
+                    <p className="text-[9px] uppercase tracking-wider text-stone-400">SLA</p>
+                    <p className="text-[11px] font-medium text-stone-800">{meta.sla}</p>
+                  </div>
+                  <div className="rounded-lg bg-white/70 px-2 py-1">
+                    <p className="text-[9px] uppercase tracking-wider text-stone-400">Share</p>
+                    <p className="text-[11px] font-medium text-stone-800">{share}%</p>
+                  </div>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
+        </div>
+
+        {/* Lead Cards */}
+        <div className="grid gap-3 xl:grid-cols-5">
+          {stages.slice(0, 5).map(([stage, items]) => {
+            const meta = SNAPSHOT_STAGE_META[stage] || { objective: "", sla: "", tone: "stone" };
+            return (
+              <div key={stage} className="rounded-3xl bg-stone-50 p-3">
+                <div className="mb-2 flex items-start justify-between px-1">
+                  <div>
+                    <p className="text-sm font-semibold text-stone-900">{stage}</p>
+                    <p className="mt-0.5 text-xs text-stone-500">{meta.objective}</p>
+                  </div>
+                  <Badge className="rounded-full border border-stone-200 bg-white text-stone-700">{items.length}</Badge>
+                </div>
+                <div className="space-y-2">
+                  {items.map((item) => (
+                    <div key={item.name} className="rounded-2xl border border-stone-200 bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="text-sm font-medium text-stone-900">{item.name}</p>
+                          <p className="mt-1 text-xs text-stone-500">{item.badge}</p>
+                        </div>
+                        <MoreHorizontal className="h-4 w-4 text-stone-400" />
+                      </div>
+                      <div className="mt-2">
+                        <ScoreBadge value={item.score} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </CardContent>
     </Card>
