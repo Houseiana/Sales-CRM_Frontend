@@ -11,6 +11,7 @@ import { Modal } from "@/components/ui/modal";
 import { useAuth } from "@/lib/auth-context";
 import { salesLeadsApi, type SalesLead } from "@/lib/api";
 import { CreateLeadForm } from "@/components/create-lead-form";
+import { useLocale } from "@/lib/i18n/locale-context";
 import type { LucideIcon } from "lucide-react";
 
 const TYPES = ["Property Owner", "Guest Booking", "Investor", "Corporate Booking", "Property Listing"];
@@ -23,6 +24,7 @@ function LeadForm({ initial, onSubmit, loading }: {
   onSubmit: (data: Record<string, string>) => void;
   loading: boolean;
 }) {
+  const { t } = useLocale();
   const [form, setForm] = useState({
     name: initial?.name || "", email: initial?.email || "", phone: initial?.phone || "",
     type: initial?.type || "Property Owner", source: initial?.source || "Meta Ads",
@@ -37,68 +39,68 @@ function LeadForm({ initial, onSubmit, loading }: {
     <form onSubmit={(e) => { e.preventDefault(); onSubmit(form); }} className="space-y-3">
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="mb-1 block text-sm font-medium text-stone-700">Name *</label>
+          <label className="mb-1 block text-sm font-medium text-stone-700">{t.createLead.contactName} {t.required}</label>
           <Input value={form.name} onChange={(e) => set("name", e.target.value)} className="h-10 rounded-xl border-stone-200" required />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-stone-700">Email</label>
+          <label className="mb-1 block text-sm font-medium text-stone-700">{t.email}</label>
           <Input type="email" value={form.email} onChange={(e) => set("email", e.target.value)} className="h-10 rounded-xl border-stone-200" />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-stone-700">Phone</label>
+          <label className="mb-1 block text-sm font-medium text-stone-700">{t.createLead.mobileWhatsapp}</label>
           <Input value={form.phone} onChange={(e) => set("phone", e.target.value)} className="h-10 rounded-xl border-stone-200" />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-stone-700">Type</label>
+          <label className="mb-1 block text-sm font-medium text-stone-700">{t.leads.type}</label>
           <select value={form.type} onChange={(e) => set("type", e.target.value)} className="h-10 w-full rounded-xl border border-stone-200 bg-white px-3 text-sm">
-            {TYPES.map((t) => <option key={t}>{t}</option>)}
+            {TYPES.map((tp) => <option key={tp}>{tp}</option>)}
           </select>
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-stone-700">Source</label>
+          <label className="mb-1 block text-sm font-medium text-stone-700">{t.leads.source}</label>
           <select value={form.source} onChange={(e) => set("source", e.target.value)} className="h-10 w-full rounded-xl border border-stone-200 bg-white px-3 text-sm">
             {SOURCES.map((s) => <option key={s}>{s}</option>)}
           </select>
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-stone-700">Score</label>
+          <label className="mb-1 block text-sm font-medium text-stone-700">{t.leads.score}</label>
           <select value={form.score} onChange={(e) => set("score", e.target.value)} className="h-10 w-full rounded-xl border border-stone-200 bg-white px-3 text-sm">
             {SCORES.map((s) => <option key={s}>{s}</option>)}
           </select>
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-stone-700">Stage</label>
+          <label className="mb-1 block text-sm font-medium text-stone-700">{t.leads.stage}</label>
           <select value={form.stage} onChange={(e) => set("stage", e.target.value)} className="h-10 w-full rounded-xl border border-stone-200 bg-white px-3 text-sm">
             {STAGES.map((s) => <option key={s}>{s}</option>)}
           </select>
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-stone-700">City</label>
+          <label className="mb-1 block text-sm font-medium text-stone-700">{t.leads.city}</label>
           <Input value={form.city} onChange={(e) => set("city", e.target.value)} className="h-10 rounded-xl border-stone-200" />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-stone-700">Country</label>
+          <label className="mb-1 block text-sm font-medium text-stone-700">{t.createLead.country}</label>
           <Input value={form.country} onChange={(e) => set("country", e.target.value)} className="h-10 rounded-xl border-stone-200" />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-stone-700">Language</label>
+          <label className="mb-1 block text-sm font-medium text-stone-700">{t.createLead.preferredLanguage}</label>
           <Input value={form.language} onChange={(e) => set("language", e.target.value)} className="h-10 rounded-xl border-stone-200" />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-stone-700">Budget</label>
+          <label className="mb-1 block text-sm font-medium text-stone-700">{t.leads.budget}</label>
           <Input value={form.budget} onChange={(e) => set("budget", e.target.value)} className="h-10 rounded-xl border-stone-200" />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-stone-700">Assigned Agent</label>
+          <label className="mb-1 block text-sm font-medium text-stone-700">{t.createLead.assignedAgent}</label>
           <Input value={form.assignedAgentName} onChange={(e) => set("assignedAgentName", e.target.value)} className="h-10 rounded-xl border-stone-200" />
         </div>
       </div>
       <div>
-        <label className="mb-1 block text-sm font-medium text-stone-700">Notes</label>
+        <label className="mb-1 block text-sm font-medium text-stone-700">{t.createLead.internalNotes}</label>
         <textarea value={form.notes} onChange={(e) => set("notes", e.target.value)} className="w-full rounded-xl border border-stone-200 p-3 text-sm" rows={2} />
       </div>
       <Button type="submit" disabled={loading} className="h-10 w-full rounded-xl bg-stone-950 text-white hover:bg-stone-800">
-        {loading ? "Saving..." : initial ? "Save Changes" : "Create Lead"}
+        {loading ? t.createLead.saving : initial ? t.save : t.createLead.createHouseianaLead}
       </Button>
     </form>
   );
@@ -106,6 +108,7 @@ function LeadForm({ initial, onSubmit, loading }: {
 
 export function LeadsView() {
   const { canEdit, canDelete } = useAuth();
+  const { t } = useLocale();
   const [leads, setLeads] = useState<SalesLead[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("All");
@@ -155,7 +158,7 @@ export function LeadsView() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Delete this lead?")) return;
+    if (!confirm(t.leads.deleteLead)) return;
     try { await salesLeadsApi.delete(id); fetchLeads(); } catch { /* ignore */ }
   };
 
@@ -163,9 +166,18 @@ export function LeadsView() {
   const qualifiedCount = leads.filter((l) => l.stage === "Qualified").length;
   const unassignedCount = leads.filter((l) => !l.assignedAgentName).length;
   const leadSummary: [string, string, LucideIcon][] = [
-    ["New Leads", String(newCount), Users],
-    ["Qualified", String(qualifiedCount), Building2],
-    ["Unassigned", String(unassignedCount), UserPlus],
+    [t.leads.newLeads, String(newCount), Users],
+    [t.leads.qualified, String(qualifiedCount), Building2],
+    [t.leads.unassigned, String(unassignedCount), UserPlus],
+  ];
+
+  const filterLabels: [string, string][] = [
+    ["All", t.all],
+    ["Owners", t.leads.owners],
+    ["Guests", t.leads.guests],
+    ["Investors", t.leads.investors],
+    ["Corporate", t.leads.corporate],
+    ["Hot", t.leads.hot],
   ];
 
   // ── Premium Create Form (full page) ──
@@ -180,7 +192,7 @@ export function LeadsView() {
 
   return (
     <div className="space-y-4">
-      {error && <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">{error}<button onClick={() => setError("")} className="ml-2 font-semibold">Dismiss</button></div>}
+      {error && <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">{error}<button onClick={() => setError("")} className="ml-2 font-semibold">{t.dismiss}</button></div>}
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
         {leadSummary.map(([title, value, Icon]) => (
@@ -199,28 +211,28 @@ export function LeadsView() {
       <Card className="rounded-3xl border-stone-200/80 shadow-sm">
         <CardContent className="flex flex-col gap-4 p-5 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-wrap gap-2">
-            {["All", "Owners", "Guests", "Investors", "Corporate", "Hot"].map((f) => (
-              <Button key={f} variant={filter === f ? "default" : "outline"} onClick={() => setFilter(f)}
-                className={`rounded-2xl ${filter === f ? "bg-stone-950 text-white hover:bg-stone-800" : "border-stone-200"}`}>{f}</Button>
+            {filterLabels.map(([key, label]) => (
+              <Button key={key} variant={filter === key ? "default" : "outline"} onClick={() => setFilter(key)}
+                className={`rounded-2xl ${filter === key ? "bg-stone-950 text-white hover:bg-stone-800" : "border-stone-200"}`}>{label}</Button>
             ))}
           </div>
           <div className="flex gap-2">
-            <Input placeholder="Search leads..." value={search} onChange={(e) => setSearch(e.target.value)} className="h-10 w-48 rounded-2xl border-stone-200" />
-            {canEdit && <Button onClick={() => setShowCreate(true)} className="rounded-2xl bg-stone-950 text-white hover:bg-stone-800"><UserPlus className="mr-2 h-4 w-4" /> Add Lead</Button>}
+            <Input placeholder={t.leads.searchLeads} value={search} onChange={(e) => setSearch(e.target.value)} className="h-10 w-48 rounded-2xl border-stone-200" />
+            {canEdit && <Button onClick={() => setShowCreate(true)} className="rounded-2xl bg-stone-950 text-white hover:bg-stone-800"><UserPlus className="mr-2 h-4 w-4" /> {t.leads.addLead}</Button>}
           </div>
         </CardContent>
       </Card>
 
       <Card className="rounded-3xl border-stone-200/80 shadow-sm">
         <CardContent className="p-0">
-          {loading ? <p className="py-12 text-center text-sm text-stone-500">Loading leads...</p> : leads.length === 0 ? <p className="py-12 text-center text-sm text-stone-500">No leads found.</p> : (
+          {loading ? <p className="py-12 text-center text-sm text-stone-500">{t.leads.loadingLeads}</p> : leads.length === 0 ? <p className="py-12 text-center text-sm text-stone-500">{t.leads.noLeadsFound}</p> : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-stone-200 bg-stone-50 text-left text-xs font-semibold uppercase tracking-wider text-stone-500">
-                    <th className="px-4 py-3">Lead</th><th className="px-4 py-3">Type</th><th className="px-4 py-3">Source</th>
-                    <th className="px-4 py-3">City</th><th className="px-4 py-3">Budget</th><th className="px-4 py-3">Stage</th>
-                    <th className="px-4 py-3">Score</th><th className="px-4 py-3">Actions</th>
+                    <th className="px-4 py-3">{t.leads.lead}</th><th className="px-4 py-3">{t.leads.type}</th><th className="px-4 py-3">{t.leads.source}</th>
+                    <th className="px-4 py-3">{t.leads.city}</th><th className="px-4 py-3">{t.leads.budget}</th><th className="px-4 py-3">{t.leads.stage}</th>
+                    <th className="px-4 py-3">{t.leads.score}</th><th className="px-4 py-3">{t.actions}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -228,7 +240,7 @@ export function LeadsView() {
                     <tr key={lead.id} className="border-b border-stone-200 hover:bg-stone-50/70">
                       <td className="px-4 py-3">
                         <p className="font-semibold text-stone-950">{lead.name}</p>
-                        <p className="text-xs text-stone-500">{lead.assignedAgentName || "Unassigned"}</p>
+                        <p className="text-xs text-stone-500">{lead.assignedAgentName || t.leads.unassigned}</p>
                       </td>
                       <td className="px-4 py-3 text-stone-700">{lead.type}</td>
                       <td className="px-4 py-3 text-stone-700">{lead.source}</td>
@@ -238,9 +250,9 @@ export function LeadsView() {
                       <td className="px-4 py-3"><ScoreBadge value={lead.score} /></td>
                       <td className="px-4 py-3">
                         <div className="flex gap-1">
-                          <button onClick={() => setViewLead(lead)} className="rounded-lg p-1.5 text-stone-400 hover:bg-stone-100 hover:text-stone-700" title="View"><Eye className="h-4 w-4" /></button>
-                          {canEdit && <button onClick={() => setEditLead(lead)} className="rounded-lg p-1.5 text-stone-400 hover:bg-stone-100 hover:text-stone-700" title="Edit"><Pencil className="h-4 w-4" /></button>}
-                          {canDelete && <button onClick={() => handleDelete(lead.id)} className="rounded-lg p-1.5 text-stone-400 hover:bg-rose-100 hover:text-rose-600" title="Delete"><Trash2 className="h-4 w-4" /></button>}
+                          <button onClick={() => setViewLead(lead)} className="rounded-lg p-1.5 text-stone-400 hover:bg-stone-100 hover:text-stone-700" title={t.view}><Eye className="h-4 w-4" /></button>
+                          {canEdit && <button onClick={() => setEditLead(lead)} className="rounded-lg p-1.5 text-stone-400 hover:bg-stone-100 hover:text-stone-700" title={t.edit}><Pencil className="h-4 w-4" /></button>}
+                          {canDelete && <button onClick={() => handleDelete(lead.id)} className="rounded-lg p-1.5 text-stone-400 hover:bg-rose-100 hover:text-rose-600" title={t.delete}><Trash2 className="h-4 w-4" /></button>}
                         </div>
                       </td>
                     </tr>
@@ -265,33 +277,33 @@ export function LeadsView() {
                 <ScoreBadge value={lead.score} />
               </div>
               <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-                <div className="rounded-2xl bg-stone-50 p-3"><p className="text-stone-400">Source</p><p className="mt-1 font-medium text-stone-900">{lead.source}</p></div>
-                <div className="rounded-2xl bg-stone-50 p-3"><p className="text-stone-400">Agent</p><p className="mt-1 font-medium text-stone-900">{lead.assignedAgentName || "Unassigned"}</p></div>
-                <div className="rounded-2xl bg-stone-50 p-3"><p className="text-stone-400">City</p><p className="mt-1 font-medium text-stone-900">{lead.city || "N/A"}</p></div>
-                <div className="rounded-2xl bg-stone-50 p-3"><p className="text-stone-400">Stage</p><p className="mt-1 font-medium text-stone-900">{lead.stage}</p></div>
+                <div className="rounded-2xl bg-stone-50 p-3"><p className="text-stone-400">{t.leads.source}</p><p className="mt-1 font-medium text-stone-900">{lead.source}</p></div>
+                <div className="rounded-2xl bg-stone-50 p-3"><p className="text-stone-400">{t.preview.agent}</p><p className="mt-1 font-medium text-stone-900">{lead.assignedAgentName || t.leads.unassigned}</p></div>
+                <div className="rounded-2xl bg-stone-50 p-3"><p className="text-stone-400">{t.leads.city}</p><p className="mt-1 font-medium text-stone-900">{lead.city || "N/A"}</p></div>
+                <div className="rounded-2xl bg-stone-50 p-3"><p className="text-stone-400">{t.leads.stage}</p><p className="mt-1 font-medium text-stone-900">{lead.stage}</p></div>
               </div>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      <Modal open={!!editLead} onClose={() => setEditLead(null)} title={`Edit ${editLead?.name || ""}`}>
+      <Modal open={!!editLead} onClose={() => setEditLead(null)} title={`${t.edit} ${editLead?.name || ""}`}>
         {editLead && <LeadForm initial={editLead} onSubmit={handleUpdate} loading={saving} />}
       </Modal>
       <Modal open={!!viewLead} onClose={() => setViewLead(null)} title={viewLead?.name || ""}>
         {viewLead && (
           <div className="space-y-3">
-            {[["Email", viewLead.email], ["Phone", viewLead.phone], ["Type", viewLead.type], ["Source", viewLead.source],
-              ["Stage", viewLead.stage], ["Score", viewLead.score], ["City", viewLead.city], ["Country", viewLead.country],
-              ["Language", viewLead.language], ["Budget", viewLead.budget], ["Target Area", viewLead.targetArea],
-              ["Agent", viewLead.assignedAgentName], ["Notes", viewLead.notes]].filter(([, v]) => v).map(([label, value]) => (
+            {[[t.email, viewLead.email], [t.createLead.mobileWhatsapp, viewLead.phone], [t.leads.type, viewLead.type], [t.leads.source, viewLead.source],
+              [t.leads.stage, viewLead.stage], [t.leads.score, viewLead.score], [t.leads.city, viewLead.city], [t.createLead.country, viewLead.country],
+              [t.createLead.preferredLanguage, viewLead.language], [t.leads.budget, viewLead.budget], [t.createLead.targetLocation, viewLead.targetArea],
+              [t.preview.agent, viewLead.assignedAgentName], [t.createLead.internalNotes, viewLead.notes]].filter(([, v]) => v).map(([label, value]) => (
               <div key={label} className="flex justify-between rounded-xl border border-stone-200 px-4 py-2.5">
                 <span className="text-sm text-stone-500">{label}</span>
                 <span className="text-sm font-medium text-stone-900">{value}</span>
               </div>
             ))}
             <div className="flex gap-2 pt-2">
-              {canEdit && <Button onClick={() => { setViewLead(null); setEditLead(viewLead); }} className="flex-1 rounded-xl bg-stone-950 text-white hover:bg-stone-800"><Pencil className="mr-2 h-4 w-4" />Edit</Button>}
+              {canEdit && <Button onClick={() => { setViewLead(null); setEditLead(viewLead); }} className="flex-1 rounded-xl bg-stone-950 text-white hover:bg-stone-800"><Pencil className="mr-2 h-4 w-4" />{t.edit}</Button>}
               {canDelete && <Button variant="outline" onClick={() => { handleDelete(viewLead.id); setViewLead(null); }} className="rounded-xl border-rose-200 text-rose-600 hover:bg-rose-50"><Trash2 className="h-4 w-4" /></Button>}
             </div>
           </div>

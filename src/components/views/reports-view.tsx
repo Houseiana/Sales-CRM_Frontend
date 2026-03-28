@@ -5,8 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MiniBarChart, MiniLineChart } from "@/components/charts";
 import { reports } from "@/lib/data";
+import { useLocale } from "@/lib/i18n/locale-context";
 
 export function ReportsView() {
+  const { t } = useLocale();
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
@@ -14,9 +16,9 @@ export function ReportsView() {
           <CardHeader>
             <div className="flex items-center justify-between gap-3">
               <div>
-                <CardTitle className="text-lg text-stone-950">Lead flow this week</CardTitle>
+                <CardTitle className="text-lg text-stone-950">{t.dashboard.leadFlowThisWeek}</CardTitle>
                 <p className="mt-1 text-sm text-stone-500">
-                  Capture, qualification, and follow-up momentum
+                  {t.dashboard.leadFlowSub}
                 </p>
               </div>
               <Badge className="rounded-full border border-stone-200 bg-white text-stone-700">
@@ -31,9 +33,9 @@ export function ReportsView() {
 
         <Card className="rounded-3xl border-stone-200/80 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-lg text-stone-950">Conversion trend</CardTitle>
+            <CardTitle className="text-lg text-stone-950">{t.reports.conversionTrend}</CardTitle>
             <p className="text-sm text-stone-500">
-              Weekly conversion rate from qualified to won
+              {t.reports.weeklyConversion}
             </p>
           </CardHeader>
           <CardContent>
@@ -45,8 +47,8 @@ export function ReportsView() {
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[0.55fr_0.45fr]">
         <Card className="rounded-3xl border-stone-200/80 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-lg text-stone-950">Lead sources</CardTitle>
-            <p className="text-sm text-stone-500">Top performing channels this month</p>
+            <CardTitle className="text-lg text-stone-950">{t.dashboard.leadSources}</CardTitle>
+            <p className="text-sm text-stone-500">{t.dashboard.topChannels}</p>
           </CardHeader>
           <CardContent className="space-y-4">
             {reports.sources.map(([source, value]) => (
@@ -66,7 +68,7 @@ export function ReportsView() {
         <Card className="rounded-3xl border-stone-200/80 shadow-sm">
           <CardHeader>
             <div className="flex items-center justify-between gap-3">
-              <CardTitle className="text-lg text-stone-950">Team performance</CardTitle>
+              <CardTitle className="text-lg text-stone-950">{t.dashboard.teamPerformance}</CardTitle>
               <div className="rounded-2xl bg-stone-100 p-2">
                 <ChartNoAxesColumn className="h-4 w-4 text-stone-700" />
               </div>

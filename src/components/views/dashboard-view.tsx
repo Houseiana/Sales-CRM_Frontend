@@ -27,6 +27,8 @@ import { ScoreBadge } from "@/components/score-badge";
 import { MiniBarChart } from "@/components/charts";
 import { stats as defaultStats, leads as defaultLeads, pipeline as defaultPipeline, timeline, tasks as defaultTasks, reports as defaultReports } from "@/lib/data";
 import { salesLeadsApi, salesTasksApi, type SalesLead, type DashboardData, type SalesTaskItem } from "@/lib/api";
+import { useLocale } from "@/lib/i18n/locale-context";
+import type { Dictionary } from "@/lib/i18n/dictionaries";
 import type { LucideIcon } from "lucide-react";
 
 const timelineIcons: Record<string, LucideIcon> = {
@@ -73,16 +75,16 @@ function StatCards({ statsData }: { statsData: typeof defaultStats }) {
   );
 }
 
-function AnalyticsSection({ reportsData }: { reportsData: typeof defaultReports }) {
+function AnalyticsSection({ reportsData, t }: { reportsData: typeof defaultReports; t: Dictionary }) {
   return (
     <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.3fr_0.7fr]">
       <Card className="rounded-3xl border-stone-200/80 shadow-sm">
         <CardHeader className="pb-0">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <CardTitle className="text-lg text-stone-950">Lead flow this week</CardTitle>
+              <CardTitle className="text-lg text-stone-950">{t.dashboard.leadFlowThisWeek}</CardTitle>
               <p className="mt-1 text-sm text-stone-500">
-                Capture, qualification, and follow-up momentum
+                {t.dashboard.leadFlowSub}
               </p>
             </div>
             <Badge className="rounded-full border border-stone-200 bg-white text-stone-700">
@@ -97,8 +99,8 @@ function AnalyticsSection({ reportsData }: { reportsData: typeof defaultReports 
 
       <Card className="rounded-3xl border-stone-200/80 shadow-sm">
         <CardHeader>
-          <CardTitle className="text-lg text-stone-950">Lead sources</CardTitle>
-          <p className="text-sm text-stone-500">Top performing channels this month</p>
+          <CardTitle className="text-lg text-stone-950">{t.dashboard.leadSources}</CardTitle>
+          <p className="text-sm text-stone-500">{t.dashboard.topChannels}</p>
         </CardHeader>
         <CardContent className="space-y-4">
           {reportsData.sources.map(([source, value]) => (
@@ -118,22 +120,29 @@ function AnalyticsSection({ reportsData }: { reportsData: typeof defaultReports 
   );
 }
 
-const SNAPSHOT_STAGE_META: Record<string, { objective: string; sla: string; tone: string }> = {
-  "New Lead": { objective: "Capture and verify", sla: "15 min response", tone: "stone" },
-  Contacted: { objective: "First contact and fit", sla: "Same day", tone: "amber" },
-  Qualified: { objective: "Validate budget and fit", sla: "Within 24h", tone: "yellow" },
-  Proposal: { objective: "Send offer or package", sla: "Within 24h", tone: "orange" },
-  Negotiation: { objective: "Align on terms", sla: "Daily touchpoint", tone: "emerald" },
-  Won: { objective: "Confirm and onboard", sla: "Immediate", tone: "green" },
-};
+function PipelineBoardCompact({ pipelineData, t }: { pipelineData: Record<string, { name: string; badge: string; score: string }[]>; t: Dictionary }) {
+  const stageNameMap: Record<string, string> = {
+    "New Lead": t.stages.newLead, Contacted: t.stages.contacted, Qualified: t.stages.qualified,
+    Proposal: t.stages.proposal, Negotiation: t.stages.negotiation, Won: t.stages.won, Lost: t.stages.lost,
+  };
+  const stageObjMap: Record<string, string> = {
+    "New Lead": t.stageObjectives.newLead, Contacted: t.stageObjectives.contacted, Qualified: t.stageObjectives.qualified,
+    Proposal: t.stageObjectives.proposal, Negotiation: t.stageObjectives.negotiation, Won: t.stageObjectives.won,
+  };
+  const stageSlaMap: Record<string, string> = {
+    "New Lead": t.stageSLAs.newLead, Contacted: t.stageSLAs.contacted, Qualified: t.stageSLAs.qualified,
+    Proposal: t.stageSLAs.proposal, Negotiation: t.stageSLAs.negotiation, Won: t.stageSLAs.won,
+  };
 
-const SNAPSHOT_COLORS: Record<string, string> = {
-  stone: "border-stone-200 bg-stone-50", amber: "border-amber-200 bg-amber-50",
-  yellow: "border-yellow-200 bg-yellow-50", orange: "border-orange-200 bg-orange-50",
-  emerald: "border-emerald-200 bg-emerald-50", green: "border-lime-200 bg-lime-50",
-};
+  const SNAPSHOT_COLORS: Record<string, string> = {
+    stone: "border-stone-200 bg-stone-50", amber: "border-amber-200 bg-amber-50",
+    yellow: "border-yellow-200 bg-yellow-50", orange: "border-orange-200 bg-orange-50",
+    emerald: "border-emerald-200 bg-emerald-50", green: "border-lime-200 bg-lime-50",
+  };
+  const SNAPSHOT_STAGE_TONES: Record<string, string> = {
+    "New Lead": "stone", Contacted: "amber", Qualified: "yellow", Proposal: "orange", Negotiation: "emerald", Won: "green",
+  };
 
-function PipelineBoardCompact({ pipelineData }: { pipelineData: Record<string, { name: string; badge: string; score: string }[]> }) {
   const stages = Object.entries(pipelineData);
   const totalLeads = stages.reduce((s, [, items]) => s + items.length, 0);
 
@@ -142,14 +151,14 @@ function PipelineBoardCompact({ pipelineData }: { pipelineData: Record<string, {
       <CardHeader>
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <CardTitle className="text-lg text-stone-950">Sales funnel snapshot</CardTitle>
+            <CardTitle className="text-lg text-stone-950">{t.dashboard.pipelineSnapshot}</CardTitle>
             <p className="mt-1 text-sm text-stone-500">
-              Move opportunities through clear gates instead of a loose lead list.
+              {t.dashboard.pipelineSub}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Badge className="rounded-full border border-stone-200 bg-white text-stone-700">Stage-based</Badge>
-            <Badge className="rounded-full border border-stone-200 bg-white text-stone-700">SLA driven</Badge>
+            <Badge className="rounded-full border border-stone-200 bg-white text-stone-700">{t.pipeline.stageBased}</Badge>
+            <Badge className="rounded-full border border-stone-200 bg-white text-stone-700">{t.pipeline.slaDriven}</Badge>
           </div>
         </div>
       </CardHeader>
@@ -157,26 +166,26 @@ function PipelineBoardCompact({ pipelineData }: { pipelineData: Record<string, {
         {/* Stage Headers */}
         <div className="grid gap-3 xl:grid-cols-5">
           {stages.slice(0, 5).map(([stage, items], index) => {
-            const meta = SNAPSHOT_STAGE_META[stage] || { objective: "", sla: "", tone: "stone" };
-            const colorClass = SNAPSHOT_COLORS[meta.tone] || SNAPSHOT_COLORS.stone;
+            const tone = SNAPSHOT_STAGE_TONES[stage] || "stone";
+            const colorClass = SNAPSHOT_COLORS[tone] || SNAPSHOT_COLORS.stone;
             const share = totalLeads > 0 ? Math.round((items.length / totalLeads) * 100) : 0;
             return (
               <div key={stage} className={`rounded-2xl border p-3 ${colorClass}`}>
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <p className="text-[10px] font-semibold uppercase tracking-[0.14em] opacity-60">Stage {index + 1}</p>
-                    <p className="mt-0.5 text-sm font-semibold text-stone-900">{stage}</p>
+                    <p className="mt-0.5 text-sm font-semibold text-stone-900">{stageNameMap[stage] || stage}</p>
                   </div>
                   <span className="rounded-xl bg-white/70 px-2 py-0.5 text-sm font-semibold text-stone-900">{items.length}</span>
                 </div>
-                <p className="mt-1.5 text-xs text-stone-600">{meta.objective}</p>
+                <p className="mt-1.5 text-xs text-stone-600">{stageObjMap[stage] || ""}</p>
                 <div className="mt-2 grid grid-cols-2 gap-1.5">
                   <div className="rounded-lg bg-white/70 px-2 py-1">
-                    <p className="text-[9px] uppercase tracking-wider text-stone-400">SLA</p>
-                    <p className="text-[11px] font-medium text-stone-800">{meta.sla}</p>
+                    <p className="text-[9px] uppercase tracking-wider text-stone-400">{t.pipeline.sla}</p>
+                    <p className="text-[11px] font-medium text-stone-800">{stageSlaMap[stage] || ""}</p>
                   </div>
                   <div className="rounded-lg bg-white/70 px-2 py-1">
-                    <p className="text-[9px] uppercase tracking-wider text-stone-400">Share</p>
+                    <p className="text-[9px] uppercase tracking-wider text-stone-400">{t.pipeline.share}</p>
                     <p className="text-[11px] font-medium text-stone-800">{share}%</p>
                   </div>
                 </div>
@@ -188,13 +197,12 @@ function PipelineBoardCompact({ pipelineData }: { pipelineData: Record<string, {
         {/* Lead Cards */}
         <div className="grid gap-3 xl:grid-cols-5">
           {stages.slice(0, 5).map(([stage, items]) => {
-            const meta = SNAPSHOT_STAGE_META[stage] || { objective: "", sla: "", tone: "stone" };
             return (
               <div key={stage} className="rounded-3xl bg-stone-50 p-3">
                 <div className="mb-2 flex items-start justify-between px-1">
                   <div>
-                    <p className="text-sm font-semibold text-stone-900">{stage}</p>
-                    <p className="mt-0.5 text-xs text-stone-500">{meta.objective}</p>
+                    <p className="text-sm font-semibold text-stone-900">{stageNameMap[stage] || stage}</p>
+                    <p className="mt-0.5 text-xs text-stone-500">{stageObjMap[stage] || ""}</p>
                   </div>
                   <Badge className="rounded-full border border-stone-200 bg-white text-stone-700">{items.length}</Badge>
                 </div>
@@ -223,20 +231,21 @@ function PipelineBoardCompact({ pipelineData }: { pipelineData: Record<string, {
   );
 }
 
-function LeadTableCompact({ leadsData }: { leadsData: typeof defaultLeads }) {
+function LeadTableCompact({ leadsData, t }: { leadsData: typeof defaultLeads; t: Dictionary }) {
   const headerClass = "grid-cols-[1.2fr_1fr_0.9fr_0.8fr_0.8fr_1fr_0.7fr]";
+  const filterLabels = [t.all, t.leads.owners, t.leads.guests, t.leads.investors, t.leads.hot];
   return (
     <Card className="rounded-3xl border-stone-200/80 shadow-sm">
       <CardHeader>
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <CardTitle className="text-lg text-stone-950">Recent leads</CardTitle>
+            <CardTitle className="text-lg text-stone-950">{t.dashboard.recentLeads}</CardTitle>
             <p className="mt-1 text-sm text-stone-500">
-              Fast access to the highest priority opportunities
+              {t.dashboard.fastAccess}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            {["All", "Owners", "Guests", "Investors", "Hot"].map((f, i) => (
+            {filterLabels.map((f, i) => (
               <Button
                 key={f}
                 variant={i === 0 ? "default" : "outline"}
@@ -255,13 +264,13 @@ function LeadTableCompact({ leadsData }: { leadsData: typeof defaultLeads }) {
           <div
             className={`grid ${headerClass} gap-3 border-b border-stone-200 bg-stone-50 px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-stone-500`}
           >
-            <div>Lead</div>
-            <div>Type</div>
-            <div>Source</div>
-            <div>City</div>
-            <div>Budget</div>
-            <div>Next Follow-up</div>
-            <div>Score</div>
+            <div>{t.leads.lead}</div>
+            <div>{t.leads.type}</div>
+            <div>{t.leads.source}</div>
+            <div>{t.leads.city}</div>
+            <div>{t.leads.budget}</div>
+            <div>{t.createLead.nextFollowUp}</div>
+            <div>{t.leads.score}</div>
           </div>
           {leadsData.map((lead) => (
             <div
@@ -270,7 +279,7 @@ function LeadTableCompact({ leadsData }: { leadsData: typeof defaultLeads }) {
             >
               <div>
                 <p className="font-semibold text-stone-950">{lead.name}</p>
-                <p className="mt-1 text-xs text-stone-500">Assigned to {lead.agent}</p>
+                <p className="mt-1 text-xs text-stone-500">{t.preview.agent}: {lead.agent}</p>
               </div>
               <div className="text-stone-700">{lead.type}</div>
               <div className="text-stone-700">{lead.source}</div>
@@ -288,14 +297,14 @@ function LeadTableCompact({ leadsData }: { leadsData: typeof defaultLeads }) {
   );
 }
 
-function LeadProfileCard({ lead }: { lead?: SalesLead }) {
+function LeadProfileCard({ lead, t }: { lead?: SalesLead; t: Dictionary }) {
   const details: { icon: LucideIcon; label: string; value: string }[] = [
-    { icon: Phone, label: "Phone", value: lead?.phone || "+974 5555 1298" },
-    { icon: Mail, label: "Email", value: lead?.email || "omar.hassan@email.com" },
-    { icon: Globe, label: "Language", value: lead?.language || "Arabic / English" },
-    { icon: BadgeDollarSign, label: "Estimated Value", value: lead?.budget || "High-value owner" },
-    { icon: MapPin, label: "Target Area", value: lead?.targetArea || "Lusail / The Pearl" },
-    { icon: CalendarClock, label: "Next Action", value: lead?.nextFollowUp ? new Date(lead.nextFollowUp).toLocaleString() : "Call today at 4:00 PM" },
+    { icon: Phone, label: t.createLead.mobileWhatsapp, value: lead?.phone || "+974 5555 1298" },
+    { icon: Mail, label: t.createLead.emailAddress, value: lead?.email || "omar.hassan@email.com" },
+    { icon: Globe, label: t.createLead.preferredLanguage, value: lead?.language || "Arabic / English" },
+    { icon: BadgeDollarSign, label: t.createLead.expectedPrice, value: lead?.budget || "High-value owner" },
+    { icon: MapPin, label: t.createLead.targetLocation, value: lead?.targetArea || "Lusail / The Pearl" },
+    { icon: CalendarClock, label: t.createLead.nextFollowUp, value: lead?.nextFollowUp ? new Date(lead.nextFollowUp).toLocaleString() : "Call today at 4:00 PM" },
   ];
   const displayName = lead?.name || "Omar Hassan";
   const initials = displayName.split(" ").map((n) => n[0]).join("").slice(0, 2);
@@ -341,13 +350,13 @@ function LeadProfileCard({ lead }: { lead?: SalesLead }) {
         </div>
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
           <Button className="rounded-2xl bg-stone-950 text-white hover:bg-stone-800">
-            <Phone className="mr-2 h-4 w-4" /> Call
+            <Phone className="mr-2 h-4 w-4" /> {t.preview.call}
           </Button>
           <Button variant="outline" className="rounded-2xl border-stone-200">
-            <MessageCircle className="mr-2 h-4 w-4" /> WhatsApp
+            <MessageCircle className="mr-2 h-4 w-4" /> {t.preview.whatsapp}
           </Button>
           <Button variant="outline" className="rounded-2xl border-stone-200">
-            <CheckSquare className="mr-2 h-4 w-4" /> Add Task
+            <CheckSquare className="mr-2 h-4 w-4" /> {t.preview.addTask}
           </Button>
         </div>
       </CardContent>
@@ -355,12 +364,12 @@ function LeadProfileCard({ lead }: { lead?: SalesLead }) {
   );
 }
 
-function ActivityTimeline() {
+function ActivityTimeline({ t }: { t: Dictionary }) {
   return (
     <Card className="rounded-3xl border-stone-200/80 shadow-sm">
       <CardHeader>
-        <CardTitle className="text-lg text-stone-950">Lead timeline</CardTitle>
-        <p className="text-sm text-stone-500">All touchpoints in one operational view</p>
+        <CardTitle className="text-lg text-stone-950">{t.dashboard.leadTimeline}</CardTitle>
+        <p className="text-sm text-stone-500">{t.dashboard.allTouchpoints}</p>
       </CardHeader>
       <CardContent>
         <div className="space-y-5">
@@ -390,12 +399,12 @@ function ActivityTimeline() {
   );
 }
 
-function RightRail({ tasksData, reportsData }: { tasksData: Record<string, { title: string; time: string; level: string; owner: string }[]>; reportsData: typeof defaultReports }) {
+function RightRail({ tasksData, reportsData, t }: { tasksData: Record<string, { title: string; time: string; level: string; owner: string }[]>; reportsData: typeof defaultReports; t: Dictionary }) {
   return (
     <div className="space-y-4">
       <Card className="rounded-3xl border-stone-200/80 shadow-sm">
         <CardHeader>
-          <CardTitle className="text-lg text-stone-950">Today&apos;s tasks</CardTitle>
+          <CardTitle className="text-lg text-stone-950">{t.dashboard.todaysTasks}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           {(tasksData.Today || []).map((item) => (
@@ -416,7 +425,7 @@ function RightRail({ tasksData, reportsData }: { tasksData: Record<string, { tit
 
       <Card className="rounded-3xl border-stone-200/80 shadow-sm">
         <CardHeader>
-          <CardTitle className="text-lg text-stone-950">Team performance</CardTitle>
+          <CardTitle className="text-lg text-stone-950">{t.dashboard.teamPerformance}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {reportsData.team.map(([name, meta]) => (
@@ -451,6 +460,7 @@ function RightRail({ tasksData, reportsData }: { tasksData: Record<string, { tit
 }
 
 export function DashboardView() {
+  const { t } = useLocale();
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [apiLeads, setApiLeads] = useState<SalesLead[]>([]);
   const [apiPipeline, setApiPipeline] = useState<Record<string, SalesLead[]> | null>(null);
@@ -466,10 +476,10 @@ export function DashboardView() {
   // Use API data when available, fall back to static
   const stats = dashboard
     ? [
-        { label: "Total Leads", value: String(dashboard.totalLeads), change: "+12.4%", sub: "vs last month" },
-        { label: "New Today", value: String(dashboard.newToday), change: "+8.1%", sub: "fresh inbound leads" },
-        { label: "Hot Leads", value: String(dashboard.hotLeads), change: "+21.0%", sub: "priority follow-up" },
-        { label: "Conversion Rate", value: `${dashboard.conversionRate}%`, change: "+2.3%", sub: "qualified to won" },
+        { label: t.dashboard.totalLeads, value: String(dashboard.totalLeads), change: "+12.4%", sub: t.dashboard.vsLastMonth },
+        { label: t.dashboard.newToday, value: String(dashboard.newToday), change: "+8.1%", sub: t.dashboard.freshInbound },
+        { label: t.dashboard.hotLeads, value: String(dashboard.hotLeads), change: "+21.0%", sub: t.dashboard.priorityFollowUp },
+        { label: t.dashboard.conversionRate, value: `${dashboard.conversionRate}%`, change: "+2.3%", sub: t.dashboard.qualifiedToWon },
       ]
     : defaultStats;
 
@@ -482,7 +492,7 @@ export function DashboardView() {
         budget: l.budget || "N/A",
         score: l.score,
         next: l.nextFollowUp ? new Date(l.nextFollowUp).toLocaleString() : "Not set",
-        agent: l.assignedAgentName || "Unassigned",
+        agent: l.assignedAgentName || t.leads.unassigned,
         language: l.language || "",
         status: l.stage,
       }))
@@ -495,7 +505,7 @@ export function DashboardView() {
           .slice(0, 5)
           .map(([s, c]) => [s, `${Math.round((c / Math.max(dashboard.totalLeads, 1)) * 100)}%`] as [string, string]),
         team: dashboard.teamStats.map(
-          (t) => [t.name, `${t.leadsHandled} leads handled`, `${t.winRate}% win rate`] as [string, string, string]
+          (ts) => [ts.name, `${ts.leadsHandled} ${t.reports.leadsHandled}`, `${ts.winRate}% ${t.reports.winRate}`] as [string, string, string]
         ),
       }
     : defaultReports;
@@ -511,8 +521,8 @@ export function DashboardView() {
 
   const tasks = apiTasks.length > 0
     ? {
-        Today: apiTasks.filter((t) => !t.isCompleted).slice(0, 3).map((t) => ({
-          title: t.title, time: t.dueDate ? new Date(t.dueDate).toLocaleTimeString() : "", level: t.priority, owner: t.owner,
+        Today: apiTasks.filter((tk) => !tk.isCompleted).slice(0, 3).map((tk) => ({
+          title: tk.title, time: tk.dueDate ? new Date(tk.dueDate).toLocaleTimeString() : "", level: tk.priority, owner: tk.owner,
         })),
       }
     : defaultTasks;
@@ -521,11 +531,11 @@ export function DashboardView() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-sm text-stone-500">Showing the current workspace</p>
-          <h2 className="text-xl font-semibold tracking-tight text-stone-950">Dashboard</h2>
+          <p className="text-sm text-stone-500">{t.dashboard.showingWorkspace}</p>
+          <h2 className="text-xl font-semibold tracking-tight text-stone-950">{t.nav.dashboard}</h2>
         </div>
         <div className="flex flex-wrap gap-2">
-          {[`Follow-ups Due: ${dashboard?.tasksDueToday ?? 12}`, `Missed: ${dashboard?.overdueTasks ?? 3}`, "Won This Week: 9"].map((item) => (
+          {[`${t.dashboard.followupsDue}: ${dashboard?.tasksDueToday ?? 12}`, `${t.dashboard.missed}: ${dashboard?.overdueTasks ?? 3}`, `${t.dashboard.wonThisWeek}: 9`].map((item) => (
             <Badge key={item} className="rounded-full border border-stone-200 bg-white text-stone-700">
               {item}
             </Badge>
@@ -534,17 +544,17 @@ export function DashboardView() {
       </div>
 
       <StatCards statsData={stats} />
-      <AnalyticsSection reportsData={reports} />
-      <PipelineBoardCompact pipelineData={pipeline} />
+      <AnalyticsSection reportsData={reports} t={t} />
+      <PipelineBoardCompact pipelineData={pipeline} t={t} />
 
       <div className="grid grid-cols-1 gap-4 2xl:grid-cols-[1.45fr_0.9fr]">
-        <LeadTableCompact leadsData={leads} />
-        <RightRail tasksData={tasks} reportsData={reports} />
+        <LeadTableCompact leadsData={leads} t={t} />
+        <RightRail tasksData={tasks} reportsData={reports} t={t} />
       </div>
 
       <div className="grid grid-cols-1 gap-4 2xl:grid-cols-[0.9fr_1.1fr]">
-        <LeadProfileCard lead={apiLeads[0]} />
-        <ActivityTimeline />
+        <LeadProfileCard lead={apiLeads[0]} t={t} />
+        <ActivityTimeline t={t} />
       </div>
     </div>
   );

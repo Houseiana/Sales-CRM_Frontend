@@ -18,6 +18,8 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/lib/auth-context";
 import { teamApi, type CrmUser } from "@/lib/api";
+import { useLocale } from "@/lib/i18n/locale-context";
+import type { Dictionary } from "@/lib/i18n/dictionaries";
 
 const ROLES = ["Admin", "Sales Manager", "Sales Agent", "Business Development", "View Only"];
 
@@ -29,7 +31,7 @@ const roleBadgeStyle: Record<string, string> = {
   "View Only": "bg-slate-100 text-slate-700 border-slate-200",
 };
 
-function Modal({
+function TeamModal({
   open,
   onClose,
   title,
@@ -58,6 +60,7 @@ function Modal({
 
 export function TeamView() {
   const { canManageTeam } = useAuth();
+  const { t } = useLocale();
   const [members, setMembers] = useState<CrmUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
@@ -80,7 +83,7 @@ export function TeamView() {
   }, []);
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to remove this team member?")) return;
+    if (!confirm(t.delete + "?")) return;
     try {
       await teamApi.delete(id);
       setMembers((prev) => prev.filter((m) => m.id !== id));
@@ -110,9 +113,9 @@ export function TeamView() {
       <div className="flex items-center justify-center py-20">
         <div className="text-center">
           <ShieldCheck className="mx-auto mb-4 h-12 w-12 text-stone-300" />
-          <p className="text-lg font-semibold text-stone-950">Admin access required</p>
+          <p className="text-lg font-semibold text-stone-950">{t.teamView.roles.admin}</p>
           <p className="mt-1 text-sm text-stone-500">
-            Only administrators can manage team members.
+            {t.teamView.manageTeam}
           </p>
         </div>
       </div>
@@ -125,16 +128,16 @@ export function TeamView() {
         <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
           {error}
           <button onClick={() => setError("")} className="ml-2 font-semibold">
-            Dismiss
+            {t.dismiss}
           </button>
         </div>
       )}
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
         {[
-          ["Total Members", String(members.length), Users],
-          ["Active Members", String(activeCount), UserRoundCheck],
-          ["Administrators", String(adminCount), ShieldCheck],
+          [t.teamView.teamMembers, String(members.length), Users],
+          [t.teamView.active, String(activeCount), UserRoundCheck],
+          [t.teamView.roles.admin, String(adminCount), ShieldCheck],
         ].map(([title, value, Icon]) => {
           const IconComp = Icon as React.ComponentType<{ className?: string }>;
           return (
@@ -157,32 +160,32 @@ export function TeamView() {
         <CardHeader>
           <div className="flex items-center justify-between gap-3">
             <div>
-              <CardTitle className="text-lg text-stone-950">Team members</CardTitle>
+              <CardTitle className="text-lg text-stone-950">{t.teamView.teamMembers}</CardTitle>
               <p className="mt-1 text-sm text-stone-500">
-                Manage accounts, roles, and access permissions
+                {t.teamView.manageTeam}
               </p>
             </div>
             <Button
               className="rounded-2xl bg-stone-950 text-white hover:bg-stone-800"
               onClick={() => setShowAdd(true)}
             >
-              <UserPlus className="mr-2 h-4 w-4" /> Add Member
+              <UserPlus className="mr-2 h-4 w-4" /> {t.teamView.addMember}
             </Button>
           </div>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <p className="py-8 text-center text-sm text-stone-500">Loading team...</p>
+            <p className="py-8 text-center text-sm text-stone-500">{t.loading}</p>
           ) : members.length === 0 ? (
-            <p className="py-8 text-center text-sm text-stone-500">No team members yet.</p>
+            <p className="py-8 text-center text-sm text-stone-500">{t.noData}</p>
           ) : (
             <div className="overflow-hidden rounded-2xl border border-stone-200">
               <div className="grid grid-cols-[1.2fr_1.2fr_0.8fr_0.6fr_0.8fr] gap-3 border-b border-stone-200 bg-stone-50 px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-stone-500">
-                <div>Member</div>
-                <div>Email</div>
-                <div>Role</div>
-                <div>Status</div>
-                <div>Actions</div>
+                <div>{t.teamView.name}</div>
+                <div>{t.email}</div>
+                <div>{t.teamView.role}</div>
+                <div>{t.teamView.status}</div>
+                <div>{t.actions}</div>
               </div>
               {members.map((member) => {
                 const initials = member.name
@@ -204,7 +207,7 @@ export function TeamView() {
                       <div>
                         <p className="font-semibold text-stone-950">{member.name}</p>
                         <p className="text-xs text-stone-500">
-                          Joined {new Date(member.createdAt).toLocaleDateString()}
+                          {new Date(member.createdAt).toLocaleDateString()}
                         </p>
                       </div>
                     </div>
@@ -224,21 +227,21 @@ export function TeamView() {
                             : "border-stone-200 bg-stone-100 text-stone-500"
                         }`}
                       >
-                        {member.isActive ? "Active" : "Inactive"}
+                        {member.isActive ? t.teamView.active : t.teamView.inactive}
                       </Badge>
                     </div>
                     <div className="flex gap-1">
                       <button
                         onClick={() => setEditMember(member)}
                         className="rounded-xl p-2 text-stone-400 hover:bg-stone-100 hover:text-stone-700"
-                        title="Edit"
+                        title={t.edit}
                       >
                         <Pencil className="h-4 w-4" />
                       </button>
                       <button
                         onClick={() => handleToggleActive(member)}
                         className="rounded-xl p-2 text-stone-400 hover:bg-stone-100 hover:text-stone-700"
-                        title={member.isActive ? "Deactivate" : "Activate"}
+                        title={member.isActive ? t.teamView.deactivate : t.teamView.activate}
                       >
                         {member.isActive ? (
                           <UserRoundX className="h-4 w-4" />
@@ -249,7 +252,7 @@ export function TeamView() {
                       <button
                         onClick={() => handleDelete(member.id)}
                         className="rounded-xl p-2 text-stone-400 hover:bg-rose-100 hover:text-rose-600"
-                        title="Delete"
+                        title={t.delete}
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -265,19 +268,19 @@ export function TeamView() {
       {/* Role descriptions */}
       <Card className="rounded-3xl border-stone-200/80 shadow-sm">
         <CardHeader>
-          <CardTitle className="text-lg text-stone-950">Role permissions</CardTitle>
-          <p className="text-sm text-stone-500">What each role can do in Houseiana CRM</p>
+          <CardTitle className="text-lg text-stone-950">{t.teamView.role}</CardTitle>
+          <p className="text-sm text-stone-500">{t.teamView.manageTeam}</p>
         </CardHeader>
         <CardContent className="space-y-3">
           {[
-            ["Admin", "Full access. Create/edit/delete leads, tasks, team members. Manage settings."],
-            ["Sales Manager", "Edit and delete leads/tasks. View reports. Cannot manage team."],
-            ["Sales Agent", "Create and edit leads/tasks. View pipeline and communications."],
-            ["Business Development", "Create and edit leads. Focus on outreach and partnerships."],
-            ["View Only", "Read-only access. Cannot create, edit, or delete any data."],
+            [t.teamView.roles.admin, "Full access. Create/edit/delete leads, tasks, team members. Manage settings."],
+            [t.teamView.roles.salesManager, "Edit and delete leads/tasks. View reports. Cannot manage team."],
+            [t.teamView.roles.salesAgent, "Create and edit leads/tasks. View pipeline and communications."],
+            [t.teamView.roles.businessDev, "Create and edit leads. Focus on outreach and partnerships."],
+            [t.teamView.roles.viewOnly, "Read-only access. Cannot create, edit, or delete any data."],
           ].map(([role, desc]) => (
             <div key={role} className="flex items-start gap-3 rounded-2xl border border-stone-200 p-4">
-              <Badge className={`mt-0.5 shrink-0 rounded-full border ${roleBadgeStyle[role]}`}>
+              <Badge className={`mt-0.5 shrink-0 rounded-full border ${roleBadgeStyle[role] || roleBadgeStyle["View Only"]}`}>
                 {role}
               </Badge>
               <p className="text-sm leading-6 text-stone-600">{desc}</p>
@@ -287,36 +290,38 @@ export function TeamView() {
       </Card>
 
       {/* Add Member Modal */}
-      <Modal open={showAdd} onClose={() => setShowAdd(false)} title="Add team member">
+      <TeamModal open={showAdd} onClose={() => setShowAdd(false)} title={t.teamView.addMember}>
         <AddMemberForm
+          t={t}
           onSuccess={() => {
             setShowAdd(false);
             fetchMembers();
           }}
         />
-      </Modal>
+      </TeamModal>
 
       {/* Edit Member Modal */}
-      <Modal
+      <TeamModal
         open={!!editMember}
         onClose={() => setEditMember(null)}
-        title={`Edit ${editMember?.name || "member"}`}
+        title={`${t.edit} ${editMember?.name || ""}`}
       >
         {editMember && (
           <EditMemberForm
             member={editMember}
+            t={t}
             onSuccess={() => {
               setEditMember(null);
               fetchMembers();
             }}
           />
         )}
-      </Modal>
+      </TeamModal>
     </div>
   );
 }
 
-function AddMemberForm({ onSuccess }: { onSuccess: () => void }) {
+function AddMemberForm({ onSuccess, t }: { onSuccess: () => void; t: Dictionary }) {
   const [form, setForm] = useState({ name: "", email: "", password: "", role: "Sales Agent" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -343,7 +348,7 @@ function AddMemberForm({ onSuccess }: { onSuccess: () => void }) {
         </div>
       )}
       <div>
-        <label className="mb-2 block text-sm font-medium text-stone-700">Full Name</label>
+        <label className="mb-2 block text-sm font-medium text-stone-700">{t.teamView.name}</label>
         <Input
           value={form.name}
           onChange={(e) => setForm({ ...form, name: e.target.value })}
@@ -352,7 +357,7 @@ function AddMemberForm({ onSuccess }: { onSuccess: () => void }) {
         />
       </div>
       <div>
-        <label className="mb-2 block text-sm font-medium text-stone-700">Email</label>
+        <label className="mb-2 block text-sm font-medium text-stone-700">{t.email}</label>
         <Input
           type="email"
           value={form.email}
@@ -362,7 +367,7 @@ function AddMemberForm({ onSuccess }: { onSuccess: () => void }) {
         />
       </div>
       <div>
-        <label className="mb-2 block text-sm font-medium text-stone-700">Password</label>
+        <label className="mb-2 block text-sm font-medium text-stone-700">{t.password}</label>
         <Input
           type="password"
           value={form.password}
@@ -373,7 +378,7 @@ function AddMemberForm({ onSuccess }: { onSuccess: () => void }) {
         />
       </div>
       <div>
-        <label className="mb-2 block text-sm font-medium text-stone-700">Role</label>
+        <label className="mb-2 block text-sm font-medium text-stone-700">{t.teamView.role}</label>
         <select
           value={form.role}
           onChange={(e) => setForm({ ...form, role: e.target.value })}
@@ -391,7 +396,7 @@ function AddMemberForm({ onSuccess }: { onSuccess: () => void }) {
         disabled={loading}
         className="h-11 w-full rounded-2xl bg-stone-950 text-white hover:bg-stone-800"
       >
-        {loading ? "Creating..." : "Create Member"}
+        {loading ? t.loading : t.teamView.createMember}
       </Button>
     </form>
   );
@@ -400,9 +405,11 @@ function AddMemberForm({ onSuccess }: { onSuccess: () => void }) {
 function EditMemberForm({
   member,
   onSuccess,
+  t,
 }: {
   member: CrmUser;
   onSuccess: () => void;
+  t: Dictionary;
 }) {
   const [form, setForm] = useState({
     name: member.name,
@@ -441,7 +448,7 @@ function EditMemberForm({
         </div>
       )}
       <div>
-        <label className="mb-2 block text-sm font-medium text-stone-700">Full Name</label>
+        <label className="mb-2 block text-sm font-medium text-stone-700">{t.teamView.name}</label>
         <Input
           value={form.name}
           onChange={(e) => setForm({ ...form, name: e.target.value })}
@@ -450,7 +457,7 @@ function EditMemberForm({
         />
       </div>
       <div>
-        <label className="mb-2 block text-sm font-medium text-stone-700">Email</label>
+        <label className="mb-2 block text-sm font-medium text-stone-700">{t.email}</label>
         <Input
           type="email"
           value={form.email}
@@ -461,19 +468,18 @@ function EditMemberForm({
       </div>
       <div>
         <label className="mb-2 block text-sm font-medium text-stone-700">
-          New Password <span className="font-normal text-stone-400">(leave blank to keep current)</span>
+          {t.password} <span className="font-normal text-stone-400">({t.optional})</span>
         </label>
         <Input
           type="password"
           value={form.password}
           onChange={(e) => setForm({ ...form, password: e.target.value })}
           className="h-11 rounded-2xl border-stone-200"
-          placeholder="Enter new password"
           minLength={6}
         />
       </div>
       <div>
-        <label className="mb-2 block text-sm font-medium text-stone-700">Role</label>
+        <label className="mb-2 block text-sm font-medium text-stone-700">{t.teamView.role}</label>
         <select
           value={form.role}
           onChange={(e) => setForm({ ...form, role: e.target.value })}
@@ -491,7 +497,7 @@ function EditMemberForm({
         disabled={loading}
         className="h-11 w-full rounded-2xl bg-stone-950 text-white hover:bg-stone-800"
       >
-        {loading ? "Saving..." : "Save Changes"}
+        {loading ? t.loading : t.save}
       </Button>
     </form>
   );

@@ -14,23 +14,22 @@ import { ScoreBadge } from "@/components/score-badge";
 import { MiniLineChart } from "@/components/charts";
 import { useAuth } from "@/lib/auth-context";
 import { salesLeadsApi, salesTasksApi, type SalesLead } from "@/lib/api";
+import { useLocale } from "@/lib/i18n/locale-context";
+import type { Dictionary } from "@/lib/i18n/dictionaries";
 import type { LucideIcon } from "lucide-react";
 
-/* ── Stage metadata ── */
+/* ── Stage key helper ── */
+const STAGE_KEYS = ["New Lead", "Contacted", "Qualified", "Proposal", "Negotiation", "Won", "Lost"] as const;
 
-interface StageMeta { objective: string; sla: string; tone: string }
-
-const STAGE_META: Record<string, StageMeta> = {
-  "New Lead":     { objective: "Capture and verify the opportunity",         sla: "Respond in 15 min",        tone: "stone" },
-  Contacted:      { objective: "Make first contact and confirm fit",         sla: "Same day follow-up",       tone: "amber" },
-  Qualified:      { objective: "Validate budget, location, and service fit", sla: "Move within 24h",          tone: "yellow" },
-  Proposal:       { objective: "Send offer, package, or commercial proposal",sla: "Within 24h of qualification", tone: "orange" },
-  Negotiation:    { objective: "Resolve objections and align on terms",      sla: "Daily touchpoint",         tone: "emerald" },
-  Won:            { objective: "Confirm, hand off, and start onboarding",    sla: "Immediate handoff",        tone: "green" },
-  Lost:           { objective: "Document reason and archive",                sla: "Post-mortem review",       tone: "slate" },
+const STAGE_KEY_MAP: Record<string, keyof Dictionary["stages"]> = {
+  "New Lead": "newLead", Contacted: "contacted", Qualified: "qualified",
+  Proposal: "proposal", Negotiation: "negotiation", Won: "won", Lost: "lost",
 };
 
-const STAGES = ["New Lead", "Contacted", "Qualified", "Proposal", "Negotiation", "Won", "Lost"];
+const STAGE_TONES: Record<string, string> = {
+  "New Lead": "stone", Contacted: "amber", Qualified: "yellow",
+  Proposal: "orange", Negotiation: "emerald", Won: "green", Lost: "slate",
+};
 
 const STAGE_COLORS: Record<string, string> = {
   stone: "border-stone-200 bg-stone-50 text-stone-900",
@@ -49,11 +48,13 @@ function LeadPreviewDrawer({
   onClose,
   onMoveStage,
   onAddTask,
+  t,
 }: {
   lead: SalesLead;
   onClose: () => void;
   onMoveStage: (leadId: string, stage: string) => void;
   onAddTask: (leadId: string, title: string) => void;
+  t: Dictionary;
 }) {
   const [showStages, setShowStages] = useState(false);
   const [taskTitle, setTaskTitle] = useState("");
@@ -61,17 +62,17 @@ function LeadPreviewDrawer({
   const initials = lead.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
 
   const details: { icon: LucideIcon; label: string; value: string }[] = [
-    ...(lead.type ? [{ icon: Building2, label: "Type", value: lead.type }] : []),
-    ...(lead.source ? [{ icon: Flame, label: "Source", value: lead.source }] : []),
-    ...(lead.city || lead.country ? [{ icon: MapPin, label: "Location", value: [lead.city, lead.country].filter(Boolean).join(", ") }] : []),
-    ...(lead.assignedAgentName ? [{ icon: UserCheck, label: "Assigned Agent", value: lead.assignedAgentName }] : []),
-    ...(lead.phone ? [{ icon: Phone, label: "Phone", value: lead.phone }] : []),
-    ...(lead.email ? [{ icon: Mail, label: "Email", value: lead.email }] : []),
-    ...(lead.language ? [{ icon: Globe, label: "Language", value: lead.language }] : []),
-    ...(lead.budget ? [{ icon: BadgeDollarSign, label: "Budget", value: lead.budget }] : []),
-    ...(lead.targetArea ? [{ icon: MapPin, label: "Target Area", value: lead.targetArea }] : []),
-    ...(lead.businessLine ? [{ icon: Building2, label: "Business Line", value: lead.businessLine }] : []),
-    ...(lead.managementScope ? [{ icon: Target, label: "Management Scope", value: lead.managementScope }] : []),
+    ...(lead.type ? [{ icon: Building2, label: t.leads.type, value: lead.type }] : []),
+    ...(lead.source ? [{ icon: Flame, label: t.leads.source, value: lead.source }] : []),
+    ...(lead.city || lead.country ? [{ icon: MapPin, label: t.createLead.cityLabel, value: [lead.city, lead.country].filter(Boolean).join(", ") }] : []),
+    ...(lead.assignedAgentName ? [{ icon: UserCheck, label: t.createLead.assignedAgent, value: lead.assignedAgentName }] : []),
+    ...(lead.phone ? [{ icon: Phone, label: t.createLead.mobileWhatsapp, value: lead.phone }] : []),
+    ...(lead.email ? [{ icon: Mail, label: t.email, value: lead.email }] : []),
+    ...(lead.language ? [{ icon: Globe, label: t.createLead.preferredLanguage, value: lead.language }] : []),
+    ...(lead.budget ? [{ icon: BadgeDollarSign, label: t.leads.budget, value: lead.budget }] : []),
+    ...(lead.targetArea ? [{ icon: MapPin, label: t.createLead.targetLocation, value: lead.targetArea }] : []),
+    ...(lead.businessLine ? [{ icon: Building2, label: t.createLead.businessLine, value: lead.businessLine }] : []),
+    ...(lead.managementScope ? [{ icon: Target, label: t.createLead.managementScope, value: lead.managementScope }] : []),
   ];
 
   return (
@@ -109,29 +110,29 @@ function LeadPreviewDrawer({
           <div className="mb-5 grid grid-cols-2 gap-2">
             {lead.phone && (
               <a href={`tel:${lead.phone}`} className="flex items-center justify-center gap-2 rounded-2xl bg-stone-950 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-stone-800">
-                <Phone className="h-4 w-4" /> Call
+                <Phone className="h-4 w-4" /> {t.preview.call}
               </a>
             )}
             {lead.phone && (
               <a href={`https://wa.me/${lead.phone.replace(/[^0-9+]/g, "")}`} target="_blank" rel="noopener noreferrer"
                 className="flex items-center justify-center gap-2 rounded-2xl border border-stone-200 px-4 py-2.5 text-sm font-medium text-stone-700 transition hover:bg-stone-50">
-                <MessageCircle className="h-4 w-4" /> WhatsApp
+                <MessageCircle className="h-4 w-4" /> {t.preview.whatsapp}
               </a>
             )}
             <button onClick={() => setShowTaskInput(!showTaskInput)}
               className="flex items-center justify-center gap-2 rounded-2xl border border-stone-200 px-4 py-2.5 text-sm font-medium text-stone-700 transition hover:bg-stone-50">
-              <CheckSquare className="h-4 w-4" /> Add Task
+              <CheckSquare className="h-4 w-4" /> {t.preview.addTask}
             </button>
             <button onClick={() => setShowStages(!showStages)}
               className="flex items-center justify-center gap-2 rounded-2xl border border-stone-200 px-4 py-2.5 text-sm font-medium text-stone-700 transition hover:bg-stone-50">
-              <ChevronRight className="h-4 w-4" /> Move Stage
+              <ChevronRight className="h-4 w-4" /> {t.preview.moveStage}
             </button>
           </div>
 
           {/* Add Task Input */}
           {showTaskInput && (
             <div className="mb-5 rounded-2xl border border-stone-200 bg-stone-50 p-3">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-stone-400">Quick task</p>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-stone-400">{t.preview.quickTask}</p>
               <div className="flex gap-2">
                 <input
                   type="text"
@@ -151,7 +152,7 @@ function LeadPreviewDrawer({
                   onClick={() => { if (taskTitle.trim()) { onAddTask(lead.id, taskTitle.trim()); setTaskTitle(""); setShowTaskInput(false); } }}
                   className="rounded-xl bg-stone-950 text-white hover:bg-stone-800"
                   size="sm"
-                >Add</Button>
+                >{t.create}</Button>
               </div>
             </div>
           )}
@@ -159,9 +160,9 @@ function LeadPreviewDrawer({
           {/* Move Stage Selector */}
           {showStages && (
             <div className="mb-5 space-y-1.5">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-stone-400">Move to stage</p>
-              {STAGES.map((stage) => {
-                const meta = STAGE_META[stage];
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-stone-400">{t.pipeline.moveTo}</p>
+              {STAGE_KEYS.map((stage) => {
+                const key = STAGE_KEY_MAP[stage];
                 const isCurrent = stage === lead.stage;
                 return (
                   <button
@@ -173,11 +174,11 @@ function LeadPreviewDrawer({
                     }`}
                   >
                     <div>
-                      <span className={`text-sm font-medium ${isCurrent ? "text-stone-950" : "text-stone-700"}`}>{stage}</span>
-                      <p className="text-xs text-stone-500">{meta.objective}</p>
+                      <span className={`text-sm font-medium ${isCurrent ? "text-stone-950" : "text-stone-700"}`}>{t.stages[key]}</span>
+                      <p className="text-xs text-stone-500">{t.stageObjectives[key]}</p>
                     </div>
                     {isCurrent ? (
-                      <Badge className="rounded-full border border-yellow-200 bg-yellow-100 text-xs text-yellow-900">Current</Badge>
+                      <Badge className="rounded-full border border-yellow-200 bg-yellow-100 text-xs text-yellow-900">{t.pipeline.current}</Badge>
                     ) : (
                       <ChevronRight className="h-4 w-4 text-stone-400" />
                     )}
@@ -189,7 +190,7 @@ function LeadPreviewDrawer({
 
           {/* Lead Details */}
           <div className="space-y-3">
-            <p className="text-xs font-semibold uppercase tracking-wider text-stone-400">Lead details</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-stone-400">{t.preview.leadDetails}</p>
             {details.map((row) => {
               const Icon = row.icon;
               return (
@@ -211,7 +212,7 @@ function LeadPreviewDrawer({
           {/* Notes */}
           {lead.notes && (
             <div className="mt-5">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-stone-400">Notes</p>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-stone-400">{t.preview.notes}</p>
               <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4 text-sm leading-6 text-stone-700">
                 {lead.notes}
               </div>
@@ -222,7 +223,7 @@ function LeadPreviewDrawer({
         {/* Footer */}
         <div className="border-t border-stone-200 px-6 py-4">
           <Button variant="outline" onClick={onClose} className="w-full rounded-2xl border-stone-200">
-            <ExternalLink className="mr-2 h-4 w-4" /> Open Full Lead
+            <ExternalLink className="mr-2 h-4 w-4" /> {t.preview.openFullLead}
           </Button>
         </div>
       </div>
@@ -234,6 +235,7 @@ function LeadPreviewDrawer({
 
 export function PipelineView() {
   const { canEdit } = useAuth();
+  const { t } = useLocale();
   const [pipeline, setPipeline] = useState<Record<string, SalesLead[]>>({});
   const [loading, setLoading] = useState(true);
   const [previewLead, setPreviewLead] = useState<SalesLead | null>(null);
@@ -256,7 +258,7 @@ export function PipelineView() {
 
   const handleAddTask = async (leadId: string, title: string) => {
     try {
-      await salesTasksApi.create({ title, owner: "Unassigned", leadId });
+      await salesTasksApi.create({ title, owner: t.leads.unassigned, leadId });
     } catch { /* */ }
   };
 
@@ -267,10 +269,10 @@ export function PipelineView() {
   const qualifiedCount = pipeline["Qualified"]?.length || 0;
 
   const summary: [string, string, LucideIcon][] = [
-    ["Total in Pipeline", String(totalCount), BadgeDollarSign],
-    ["Qualified", String(qualifiedCount), Target],
-    ["Proposals", String(proposalCount), FileText],
-    ["Won", String(wonCount), TrendingUp],
+    [t.pipeline.totalInPipeline, String(totalCount), BadgeDollarSign],
+    [t.pipeline.qualified, String(qualifiedCount), Target],
+    [t.pipeline.proposals, String(proposalCount), FileText],
+    [t.pipeline.won, String(wonCount), TrendingUp],
   ];
 
   return (
@@ -295,51 +297,52 @@ export function PipelineView() {
         <CardHeader>
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <CardTitle className="text-lg text-stone-950">Professional sales funnel</CardTitle>
-              <p className="mt-1 text-sm text-stone-500">Click any lead card to open the preview panel.</p>
+              <CardTitle className="text-lg text-stone-950">{t.pipeline.professionalFunnel}</CardTitle>
+              <p className="mt-1 text-sm text-stone-500">{t.pipeline.funnelSub}</p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Badge className="rounded-full border border-stone-200 bg-white text-stone-700">Stage-based process</Badge>
-              <Badge className="rounded-full border border-stone-200 bg-white text-stone-700">SLA driven</Badge>
-              <Badge className="rounded-full border border-stone-200 bg-white text-stone-700">Best-practice flow</Badge>
+              <Badge className="rounded-full border border-stone-200 bg-white text-stone-700">{t.pipeline.stageBased}</Badge>
+              <Badge className="rounded-full border border-stone-200 bg-white text-stone-700">{t.pipeline.slaDriven}</Badge>
+              <Badge className="rounded-full border border-stone-200 bg-white text-stone-700">{t.pipeline.bestPractice}</Badge>
             </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-5">
           {loading ? (
-            <p className="py-12 text-center text-sm text-stone-500">Loading pipeline...</p>
+            <p className="py-12 text-center text-sm text-stone-500">{t.loading}</p>
           ) : (
             <>
               {/* Stage Headers */}
               <div className="overflow-x-auto pb-1">
                 <div className="grid min-w-[1100px] grid-cols-7 gap-3">
-                  {STAGES.map((stage, index) => {
-                    const meta = STAGE_META[stage];
+                  {STAGE_KEYS.map((stage, index) => {
+                    const key = STAGE_KEY_MAP[stage];
                     const items = pipeline[stage] || [];
                     const share = totalCount > 0 ? Math.round((items.length / totalCount) * 100) : 0;
-                    const colorClass = STAGE_COLORS[meta.tone] || STAGE_COLORS.stone;
+                    const tone = STAGE_TONES[stage] || "stone";
+                    const colorClass = STAGE_COLORS[tone] || STAGE_COLORS.stone;
                     return (
                       <div key={stage}>
                         <div className={`rounded-3xl border p-4 shadow-sm ${colorClass}`}>
                           <div className="flex items-start justify-between gap-2">
                             <div>
                               <p className="text-[10px] font-semibold uppercase tracking-[0.16em] opacity-70">Stage {index + 1}</p>
-                              <h3 className="mt-1 text-sm font-semibold">{stage}</h3>
+                              <h3 className="mt-1 text-sm font-semibold">{t.stages[key]}</h3>
                             </div>
                             <div className="rounded-2xl border border-white/60 bg-white/70 px-2.5 py-1 text-sm font-semibold text-stone-900">{items.length}</div>
                           </div>
                           <div className="mt-3 space-y-2 text-xs">
                             <div>
-                              <p className="text-[10px] uppercase tracking-[0.14em] opacity-60">Objective</p>
-                              <p className="mt-0.5 font-medium text-stone-800">{meta.objective}</p>
+                              <p className="text-[10px] uppercase tracking-[0.14em] opacity-60">{t.pipeline.objective}</p>
+                              <p className="mt-0.5 font-medium text-stone-800">{t.stageObjectives[key]}</p>
                             </div>
                             <div className="grid grid-cols-2 gap-1.5">
                               <div className="rounded-xl bg-white/70 px-2 py-1.5">
-                                <p className="text-[10px] uppercase tracking-[0.12em] text-stone-400">SLA</p>
-                                <p className="mt-0.5 font-medium text-stone-900">{meta.sla}</p>
+                                <p className="text-[10px] uppercase tracking-[0.12em] text-stone-400">{t.pipeline.sla}</p>
+                                <p className="mt-0.5 font-medium text-stone-900">{t.stageSLAs[key]}</p>
                               </div>
                               <div className="rounded-xl bg-white/70 px-2 py-1.5">
-                                <p className="text-[10px] uppercase tracking-[0.12em] text-stone-400">Share</p>
+                                <p className="text-[10px] uppercase tracking-[0.12em] text-stone-400">{t.pipeline.share}</p>
                                 <p className="mt-0.5 font-medium text-stone-900">{share}%</p>
                               </div>
                             </div>
@@ -354,15 +357,15 @@ export function PipelineView() {
               {/* Lead Cards */}
               <div className="overflow-x-auto pb-1">
                 <div className="grid min-w-[1100px] grid-cols-7 gap-3">
-                  {STAGES.map((stage) => {
-                    const meta = STAGE_META[stage];
+                  {STAGE_KEYS.map((stage) => {
+                    const key = STAGE_KEY_MAP[stage];
                     const items = pipeline[stage] || [];
                     return (
                       <div key={stage} className="rounded-3xl bg-stone-50 p-3">
                         <div className="mb-3 flex items-start justify-between gap-2 px-1">
                           <div>
-                            <p className="text-sm font-semibold text-stone-900">{stage}</p>
-                            <p className="mt-0.5 text-xs text-stone-500">{meta.objective}</p>
+                            <p className="text-sm font-semibold text-stone-900">{t.stages[key]}</p>
+                            <p className="mt-0.5 text-xs text-stone-500">{t.stageObjectives[key]}</p>
                           </div>
                           <Badge className="rounded-full border border-stone-200 bg-white text-stone-700">{items.length}</Badge>
                         </div>
@@ -376,7 +379,7 @@ export function PipelineView() {
                               <div className="flex items-start justify-between gap-2">
                                 <div>
                                   <p className="text-sm font-medium text-stone-900">{lead.name}</p>
-                                  <p className="mt-1 text-xs text-stone-500">{lead.type || "Lead"}</p>
+                                  <p className="mt-1 text-xs text-stone-500">{lead.type || t.leads.lead}</p>
                                 </div>
                                 <MoreHorizontal className="h-4 w-4 shrink-0 text-stone-400" />
                               </div>
@@ -386,13 +389,13 @@ export function PipelineView() {
                               </div>
                               {(lead.assignedAgentName || lead.targetArea) && (
                                 <div className="mt-2 rounded-xl bg-stone-50 px-2.5 py-1.5 text-xs text-stone-600">
-                                  {lead.assignedAgentName && <span>Agent: <span className="font-medium text-stone-800">{lead.assignedAgentName}</span></span>}
+                                  {lead.assignedAgentName && <span>{t.preview.agent}: <span className="font-medium text-stone-800">{lead.assignedAgentName}</span></span>}
                                   {lead.targetArea && <span className="ml-1">· {lead.targetArea}</span>}
                                 </div>
                               )}
                             </div>
                           ))}
-                          {items.length === 0 && <p className="py-6 text-center text-xs text-stone-400">No leads</p>}
+                          {items.length === 0 && <p className="py-6 text-center text-xs text-stone-400">{t.pipeline.noLeads}</p>}
                         </div>
                       </div>
                     );
@@ -408,20 +411,20 @@ export function PipelineView() {
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[0.85fr_1.15fr]">
         <Card className="rounded-3xl border-stone-200/80 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-lg text-stone-950">Stage rules</CardTitle>
-            <p className="text-sm text-stone-500">Houseiana-specific pipeline logic for premium lead handling</p>
+            <CardTitle className="text-lg text-stone-950">{t.pipeline.stageRules}</CardTitle>
+            <p className="text-sm text-stone-500">{t.pipeline.stageRulesSub}</p>
           </CardHeader>
           <CardContent className="space-y-3">
-            {STAGES.filter((s) => s !== "Lost").map((stage) => {
-              const meta = STAGE_META[stage];
+            {STAGE_KEYS.filter((s) => s !== "Lost").map((stage) => {
+              const key = STAGE_KEY_MAP[stage];
               return (
                 <div key={stage} className="rounded-2xl border border-stone-200 p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="font-medium text-stone-950">{stage}</p>
-                      <p className="mt-1 text-sm leading-6 text-stone-500">{meta.objective}</p>
+                      <p className="font-medium text-stone-950">{t.stages[key]}</p>
+                      <p className="mt-1 text-sm leading-6 text-stone-500">{t.stageObjectives[key]}</p>
                     </div>
-                    <Badge className="shrink-0 rounded-full border border-stone-200 bg-stone-50 text-xs text-stone-500">{meta.sla}</Badge>
+                    <Badge className="shrink-0 rounded-full border border-stone-200 bg-stone-50 text-xs text-stone-500">{t.stageSLAs[key]}</Badge>
                   </div>
                 </div>
               );
@@ -430,8 +433,8 @@ export function PipelineView() {
         </Card>
         <Card className="rounded-3xl border-stone-200/80 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-lg text-stone-950">Pipeline performance trend</CardTitle>
-            <p className="text-sm text-stone-500">Movement speed from first contact to proposal and close</p>
+            <CardTitle className="text-lg text-stone-950">{t.pipeline.performanceTrend}</CardTitle>
+            <p className="text-sm text-stone-500">{t.pipeline.performanceTrendSub}</p>
           </CardHeader>
           <CardContent><MiniLineChart /></CardContent>
         </Card>
@@ -444,6 +447,7 @@ export function PipelineView() {
           onClose={() => setPreviewLead(null)}
           onMoveStage={handleMoveStage}
           onAddTask={handleAddTask}
+          t={t}
         />
       )}
     </div>

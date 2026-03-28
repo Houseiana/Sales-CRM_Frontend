@@ -3,6 +3,7 @@
 import { ShieldCheck, Sparkles, Bot, SlidersHorizontal } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useLocale } from "@/lib/i18n/locale-context";
 import type { LucideIcon } from "lucide-react";
 
 const iconMap: Record<string, LucideIcon> = {
@@ -12,30 +13,39 @@ const iconMap: Record<string, LucideIcon> = {
   SlidersHorizontal,
 };
 
-const settingsCards = [
-  {
-    title: "Team & Roles",
-    text: "Manage Admin, Sales Manager, Sales Agent, Business Development, and view-only roles.",
-    iconName: "ShieldCheck",
-  },
-  {
-    title: "Lead Scoring",
-    text: "Configure hot, warm, cold, and priority scoring rules by source, budget, and urgency.",
-    iconName: "Sparkles",
-  },
-  {
-    title: "Automations",
-    text: "Create reminders, task triggers, round-robin assignment, and inactivity alerts.",
-    iconName: "Bot",
-  },
-  {
-    title: "Pipeline Rules",
-    text: "Customize lead stages for owners, guests, investors, and B2B partnership flows.",
-    iconName: "SlidersHorizontal",
-  },
-];
-
 export function SettingsView() {
+  const { t } = useLocale();
+
+  const settingsCards = [
+    {
+      title: t.settingsView.teamRoles,
+      text: t.settingsView.teamRolesDesc,
+      iconName: "ShieldCheck",
+    },
+    {
+      title: t.settingsView.leadScoring,
+      text: t.settingsView.leadScoringDesc,
+      iconName: "Sparkles",
+    },
+    {
+      title: t.settingsView.automations,
+      text: t.settingsView.automationsDesc,
+      iconName: "Bot",
+    },
+    {
+      title: t.settingsView.pipelineRules,
+      text: t.settingsView.pipelineRulesDesc,
+      iconName: "SlidersHorizontal",
+    },
+  ];
+
+  const preferences = [
+    [t.settingsView.defaultAssignment, t.settingsView.defaultAssignmentDesc],
+    [t.settingsView.inactivityAlert, t.settingsView.inactivityAlertDesc],
+    [t.settingsView.dataRetention, t.settingsView.dataRetentionDesc],
+    ["Timezone", "Asia/Qatar (GMT+3)"],
+  ];
+
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
@@ -51,7 +61,7 @@ export function SettingsView() {
                   <p className="font-semibold text-stone-950">{card.title}</p>
                   <p className="mt-1 text-sm leading-6 text-stone-500">{card.text}</p>
                   <Button variant="outline" className="mt-4 rounded-2xl border-stone-200">
-                    Configure
+                    {t.settingsView.configure}
                   </Button>
                 </div>
               </CardContent>
@@ -62,21 +72,13 @@ export function SettingsView() {
 
       <Card className="rounded-3xl border-stone-200/80 shadow-sm">
         <CardHeader>
-          <CardTitle className="text-lg text-stone-950">System preferences</CardTitle>
+          <CardTitle className="text-lg text-stone-950">{t.settingsView.systemPrefs}</CardTitle>
           <p className="text-sm text-stone-500">
-            Global Houseiana CRM settings and integrations
+            {t.settingsView.systemPrefsSub}
           </p>
         </CardHeader>
         <CardContent className="space-y-3">
-          {[
-            [
-              "Default lead assignment",
-              "Round-robin between active agents with language match",
-            ],
-            ["Inactivity alert", "Trigger notification after 4 hours with no action on hot lead"],
-            ["Data retention", "Archive leads inactive for 90+ days"],
-            ["Timezone", "Asia/Qatar (GMT+3)"],
-          ].map(([title, text]) => (
+          {preferences.map(([title, text]) => (
             <div key={title} className="rounded-2xl border border-stone-200 p-4">
               <div className="flex items-center justify-between gap-4">
                 <div>
@@ -84,7 +86,7 @@ export function SettingsView() {
                   <p className="mt-1 text-sm text-stone-500">{text}</p>
                 </div>
                 <Button variant="outline" className="shrink-0 rounded-2xl border-stone-200">
-                  Edit
+                  {t.edit}
                 </Button>
               </div>
             </div>

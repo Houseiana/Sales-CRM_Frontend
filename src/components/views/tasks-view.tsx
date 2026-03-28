@@ -13,6 +13,7 @@ import { Modal } from "@/components/ui/modal";
 import { ScoreBadge } from "@/components/score-badge";
 import { useAuth } from "@/lib/auth-context";
 import { salesTasksApi, type SalesTaskItem } from "@/lib/api";
+import { useLocale } from "@/lib/i18n/locale-context";
 import type { LucideIcon } from "lucide-react";
 
 const PRIORITIES = ["Urgent", "High", "Medium", "Low"];
@@ -89,7 +90,7 @@ function TaskRow({
               <Clock className="h-3 w-3" /> {dueStr}{timeStr ? ` · ${timeStr}` : ""}
             </span>
           )}
-          {task.leadName && <span className="text-stone-400">Lead: {task.leadName}</span>}
+          {task.leadName && <span className="text-stone-400">{task.leadName}</span>}
           <span className="rounded-full bg-stone-100 px-2 py-0.5 text-[11px] font-medium text-stone-600">{category}</span>
         </div>
       </div>
@@ -113,6 +114,7 @@ function TaskRow({
 /* ── Main View ── */
 export function TasksView() {
   const { canEdit, canDelete } = useAuth();
+  const { t } = useLocale();
   const [tasks, setTasks] = useState<SalesTaskItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -145,24 +147,24 @@ export function TasksView() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Delete this task?")) return;
+    if (!confirm(t.tasks.deleteTask)) return;
     try { await salesTasksApi.delete(id); fetchTasks(); } catch { /* */ }
   };
 
-  const pending = tasks.filter((t) => !t.isCompleted);
-  const completed = tasks.filter((t) => t.isCompleted);
+  const pending = tasks.filter((tk) => !tk.isCompleted);
+  const completed = tasks.filter((tk) => tk.isCompleted);
   const today = new Date().toDateString();
-  const todayTasks = pending.filter((t) => t.dueDate && new Date(t.dueDate).toDateString() === today);
-  const upcomingTasks = pending.filter((t) => !t.dueDate || new Date(t.dueDate).toDateString() !== today);
+  const todayTasks = pending.filter((tk) => tk.dueDate && new Date(tk.dueDate).toDateString() === today);
+  const upcomingTasks = pending.filter((tk) => !tk.dueDate || new Date(tk.dueDate).toDateString() !== today);
 
-  const urgentCount = pending.filter((t) => t.priority === "Urgent").length;
-  const highCount = pending.filter((t) => t.priority === "High").length;
+  const urgentCount = pending.filter((tk) => tk.priority === "Urgent").length;
+  const highCount = pending.filter((tk) => tk.priority === "High").length;
 
   /* ── Summary Cards ── */
   const summaryCards: [string, string, LucideIcon][] = [
-    ["Pending", String(pending.length), ListTodo],
-    ["Due Today", String(todayTasks.length), Clock],
-    ["Completed", String(completed.length), CheckCircle2],
+    [t.tasks.pending, String(pending.length), ListTodo],
+    [t.tasks.dueToday, String(todayTasks.length), Clock],
+    [t.completed, String(completed.length), CheckCircle2],
   ];
 
   return (
@@ -192,26 +194,26 @@ export function TasksView() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-lg text-stone-950">Task list</CardTitle>
-                <p className="mt-1 text-sm text-stone-500">All follow-ups, calls, proposals, and actions in one view</p>
+                <CardTitle className="text-lg text-stone-950">{t.tasks.taskList}</CardTitle>
+                <p className="mt-1 text-sm text-stone-500">{t.tasks.taskListSub}</p>
               </div>
               {canEdit && (
                 <Button onClick={() => setShowCreate(true)} className="rounded-2xl bg-stone-950 text-white hover:bg-stone-800">
-                  <Plus className="mr-2 h-4 w-4" /> New Task
+                  <Plus className="mr-2 h-4 w-4" /> {t.tasks.newTask}
                 </Button>
               )}
             </div>
           </CardHeader>
           <CardContent className="space-y-5">
             {loading ? (
-              <p className="py-12 text-center text-sm text-stone-500">Loading tasks...</p>
+              <p className="py-12 text-center text-sm text-stone-500">{t.loading}</p>
             ) : (
               <>
                 {/* Today */}
                 {(todayTasks.length > 0 || pending.length > 0) && (
                   <div>
                     <div className="mb-3 flex items-center gap-2">
-                      <p className="text-sm font-semibold text-stone-950">Today</p>
+                      <p className="text-sm font-semibold text-stone-950">{t.today}</p>
                       <Badge className="rounded-full border border-stone-200 bg-white text-stone-600">
                         {todayTasks.length > 0 ? todayTasks.length : pending.length}
                       </Badge>
@@ -228,7 +230,7 @@ export function TasksView() {
                 {upcomingTasks.length > 0 && (
                   <div>
                     <div className="mb-3 flex items-center gap-2">
-                      <p className="text-sm font-semibold text-stone-950">Upcoming</p>
+                      <p className="text-sm font-semibold text-stone-950">{t.upcoming}</p>
                       <Badge className="rounded-full border border-stone-200 bg-white text-stone-600">{upcomingTasks.length}</Badge>
                     </div>
                     <div className="space-y-2">
@@ -243,7 +245,7 @@ export function TasksView() {
                 {completed.length > 0 && (
                   <div>
                     <div className="mb-3 flex items-center gap-2">
-                      <p className="text-sm font-semibold text-stone-950">Completed</p>
+                      <p className="text-sm font-semibold text-stone-950">{t.completed}</p>
                       <Badge className="rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700">{completed.length}</Badge>
                     </div>
                     <div className="space-y-2">
@@ -255,7 +257,7 @@ export function TasksView() {
                 )}
 
                 {tasks.length === 0 && (
-                  <p className="py-12 text-center text-sm text-stone-400">No tasks yet. Create your first task to get started.</p>
+                  <p className="py-12 text-center text-sm text-stone-400">{t.tasks.noTasks}</p>
                 )}
               </>
             )}
@@ -267,29 +269,29 @@ export function TasksView() {
           {/* Focus Today */}
           <Card className="rounded-3xl border-stone-200/80 shadow-sm">
             <CardHeader>
-              <CardTitle className="text-lg text-stone-950">Focus today</CardTitle>
-              <p className="text-sm text-stone-500">What must happen for pipeline health</p>
+              <CardTitle className="text-lg text-stone-950">{t.tasks.focusToday}</CardTitle>
+              <p className="text-sm text-stone-500">{t.tasks.focusTodaySub}</p>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex items-start gap-3 rounded-2xl border border-stone-200 p-4">
                 <div className="rounded-xl bg-rose-100 p-2"><AlertCircle className="h-4 w-4 text-rose-700" /></div>
                 <div>
-                  <p className="font-medium text-stone-950">{urgentCount} urgent task{urgentCount !== 1 ? "s" : ""}</p>
-                  <p className="mt-0.5 text-sm text-stone-500">Immediate action needed</p>
+                  <p className="font-medium text-stone-950">{urgentCount} {t.tasks.urgentTasks}{urgentCount !== 1 ? "s" : ""}</p>
+                  <p className="mt-0.5 text-sm text-stone-500">{t.tasks.immediateAction}</p>
                 </div>
               </div>
               <div className="flex items-start gap-3 rounded-2xl border border-stone-200 p-4">
                 <div className="rounded-xl bg-orange-100 p-2"><Flame className="h-4 w-4 text-orange-700" /></div>
                 <div>
-                  <p className="font-medium text-stone-950">{highCount} high-priority task{highCount !== 1 ? "s" : ""}</p>
-                  <p className="mt-0.5 text-sm text-stone-500">Complete today</p>
+                  <p className="font-medium text-stone-950">{highCount} {t.tasks.highPriority}{highCount !== 1 ? "s" : ""}</p>
+                  <p className="mt-0.5 text-sm text-stone-500">{t.tasks.completeToday}</p>
                 </div>
               </div>
               <div className="flex items-start gap-3 rounded-2xl border border-stone-200 p-4">
                 <div className="rounded-xl bg-emerald-100 p-2"><CheckCircle2 className="h-4 w-4 text-emerald-700" /></div>
                 <div>
-                  <p className="font-medium text-stone-950">{completed.length} completed</p>
-                  <p className="mt-0.5 text-sm text-stone-500">{completed.length > 0 ? "Great progress" : "Get started"}</p>
+                  <p className="font-medium text-stone-950">{completed.length} {t.completed.toLowerCase()}</p>
+                  <p className="mt-0.5 text-sm text-stone-500">{completed.length > 0 ? t.tasks.greatProgress : t.tasks.getStarted}</p>
                 </div>
               </div>
             </CardContent>
@@ -298,15 +300,15 @@ export function TasksView() {
           {/* Execution Rhythm */}
           <Card className="rounded-3xl border-stone-200/80 shadow-sm">
             <CardHeader>
-              <CardTitle className="text-lg text-stone-950">Execution rhythm</CardTitle>
-              <p className="text-sm text-stone-500">Daily operational cadence</p>
+              <CardTitle className="text-lg text-stone-950">{t.tasks.executionRhythm}</CardTitle>
+              <p className="text-sm text-stone-500">{t.tasks.dailyCadence}</p>
             </CardHeader>
             <CardContent className="space-y-2">
               {[
-                ["09:00", "Lead review and assignment"],
-                ["11:00", "Owner follow-up block"],
-                ["14:00", "Proposal and negotiation window"],
-                ["17:00", "End-of-day performance check"],
+                ["09:00", t.tasks.leadReview],
+                ["11:00", t.tasks.ownerFollowUp],
+                ["14:00", t.tasks.proposalWindow],
+                ["17:00", t.tasks.endOfDay],
               ].map(([time, label]) => (
                 <div key={time} className="flex items-center gap-3 rounded-2xl bg-stone-50 px-4 py-3">
                   <span className="text-sm font-semibold text-stone-950">{time}</span>
@@ -319,34 +321,34 @@ export function TasksView() {
       </div>
 
       {/* Create Task Modal */}
-      <Modal open={showCreate} onClose={() => setShowCreate(false)} title="Create new task">
+      <Modal open={showCreate} onClose={() => setShowCreate(false)} title={t.tasks.createTask}>
         <form onSubmit={handleCreate} className="space-y-4">
           <div>
-            <label className="mb-1 block text-sm font-medium text-stone-700">Title *</label>
+            <label className="mb-1 block text-sm font-medium text-stone-700">{t.tasks.title} {t.required}</label>
             <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="h-10 rounded-xl border-stone-200" required />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1 block text-sm font-medium text-stone-700">Priority</label>
+              <label className="mb-1 block text-sm font-medium text-stone-700">{t.tasks.priority}</label>
               <select value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value })} className="h-10 w-full rounded-xl border border-stone-200 bg-white px-3 text-sm">
                 {PRIORITIES.map((p) => <option key={p}>{p}</option>)}
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-stone-700">Owner *</label>
+              <label className="mb-1 block text-sm font-medium text-stone-700">{t.tasks.owner} {t.required}</label>
               <Input value={form.owner} onChange={(e) => setForm({ ...form, owner: e.target.value })} className="h-10 rounded-xl border-stone-200" required />
             </div>
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-stone-700">Due Date</label>
+            <label className="mb-1 block text-sm font-medium text-stone-700">{t.tasks.dueDate}</label>
             <Input type="datetime-local" value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} className="h-10 rounded-xl border-stone-200" />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-stone-700">Description</label>
+            <label className="mb-1 block text-sm font-medium text-stone-700">{t.tasks.description}</label>
             <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="w-full rounded-xl border border-stone-200 p-3 text-sm" rows={2} />
           </div>
           <Button type="submit" disabled={saving} className="h-10 w-full rounded-xl bg-stone-950 text-white hover:bg-stone-800">
-            {saving ? "Creating..." : "Create Task"}
+            {saving ? t.tasks.creating : t.tasks.createTask}
           </Button>
         </form>
       </Modal>

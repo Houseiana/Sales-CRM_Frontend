@@ -9,8 +9,10 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { conversations as defaultConversations } from "@/lib/data";
 import { conversationsApi, type ConversationItem } from "@/lib/api";
+import { useLocale } from "@/lib/i18n/locale-context";
 
 export function CommunicationsView() {
+  const { t } = useLocale();
   const [apiConvs, setApiConvs] = useState<ConversationItem[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [msgText, setMsgText] = useState("");
@@ -52,8 +54,8 @@ export function CommunicationsView() {
         <CardHeader>
           <div className="flex items-center justify-between gap-3">
             <div>
-              <CardTitle className="text-lg text-stone-950">Conversations</CardTitle>
-              <p className="text-sm text-stone-500">Recent interactions</p>
+              <CardTitle className="text-lg text-stone-950">{t.comms.conversations}</CardTitle>
+              <p className="text-sm text-stone-500">{t.comms.recentInteractions}</p>
             </div>
             <Badge className="rounded-full border border-stone-200 bg-white text-stone-700">
               {conversations.length}
@@ -148,13 +150,13 @@ export function CommunicationsView() {
               </div>
               ))}
               {activeMessages.length === 0 && (
-                <p className="py-4 text-center text-sm text-stone-400">No messages yet</p>
+                <p className="py-4 text-center text-sm text-stone-400">{t.noData}</p>
               )}
             </div>
 
             <div className="flex gap-3">
               <Input
-                placeholder="Type a message..."
+                placeholder={t.comms.typeMessage}
                 value={msgText}
                 onChange={(e) => setMsgText(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSend()}
@@ -169,18 +171,18 @@ export function CommunicationsView() {
 
         <Card className="rounded-3xl border-stone-200/80 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-lg text-stone-950">Channel overview</CardTitle>
+            <CardTitle className="text-lg text-stone-950">{t.comms.channelOverview}</CardTitle>
             <p className="text-sm text-stone-500">
-              Activity breakdown across all communication channels
+              {t.comms.activityBreakdown}
             </p>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
               {[
-                ["WhatsApp", "24 active", MessageCircle],
-                ["Calls", "8 today", Phone],
-                ["Email", "12 threads", Mail],
-                ["Inbox", "6 unread", Inbox],
+                [t.comms.whatsapp, `24 ${t.comms.active}`, MessageCircle],
+                [t.comms.calls, `8 ${t.today.toLowerCase()}`, Phone],
+                [t.comms.emailChannel, `12 ${t.comms.threads}`, Mail],
+                [t.comms.inbox, `6 ${t.comms.unread}`, Inbox],
               ].map(([label, count, Icon]) => {
                 const IconComp = Icon as React.ComponentType<{ className?: string }>;
                 return (
