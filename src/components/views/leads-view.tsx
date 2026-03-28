@@ -10,6 +10,7 @@ import { ScoreBadge } from "@/components/score-badge";
 import { Modal } from "@/components/ui/modal";
 import { useAuth } from "@/lib/auth-context";
 import { salesLeadsApi, type SalesLead } from "@/lib/api";
+import { CreateLeadForm } from "@/components/create-lead-form";
 import type { LucideIcon } from "lucide-react";
 
 const TYPES = ["Property Owner", "Guest Booking", "Investor", "Corporate Booking", "Property Listing"];
@@ -167,6 +168,16 @@ export function LeadsView() {
     ["Unassigned", String(unassignedCount), UserPlus],
   ];
 
+  // ── Premium Create Form (full page) ──
+  if (showCreate) {
+    return (
+      <CreateLeadForm
+        onSuccess={() => { setShowCreate(false); fetchLeads(); }}
+        onCancel={() => setShowCreate(false)}
+      />
+    );
+  }
+
   return (
     <div className="space-y-4">
       {error && <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">{error}<button onClick={() => setError("")} className="ml-2 font-semibold">Dismiss</button></div>}
@@ -264,9 +275,6 @@ export function LeadsView() {
         ))}
       </div>
 
-      <Modal open={showCreate} onClose={() => setShowCreate(false)} title="Create new lead">
-        <LeadForm onSubmit={handleCreate} loading={saving} />
-      </Modal>
       <Modal open={!!editLead} onClose={() => setEditLead(null)} title={`Edit ${editLead?.name || ""}`}>
         {editLead && <LeadForm initial={editLead} onSubmit={handleUpdate} loading={saving} />}
       </Modal>

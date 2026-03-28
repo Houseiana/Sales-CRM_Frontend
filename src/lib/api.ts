@@ -95,6 +95,14 @@ export interface SalesLead {
   updatedAt: string;
   taskCount: number;
   activityCount: number;
+  // Houseiana-specific fields
+  companyName?: string;
+  businessLine?: string;
+  propertyCount?: string;
+  assetType?: string;
+  unitReadiness?: string;
+  managementScope?: string;
+  campaignReference?: string;
 }
 
 export interface PagedResult<T> {
