@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
+import { useLocale } from "@/lib/i18n/locale-context";
+import { LanguageSwitcher } from "@/components/language-switcher";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,6 +15,7 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
+  const { t } = useLocale();
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -32,14 +35,19 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-stone-50 px-4">
       <div className="w-full max-w-md">
+        {/* Language switcher top-right */}
+        <div className="mb-4 flex justify-end">
+          <LanguageSwitcher />
+        </div>
+
         <div className="mb-8 text-center">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-stone-950 text-lg font-semibold text-white shadow-sm">
             H
           </div>
           <h1 className="text-2xl font-semibold tracking-tight text-stone-950">
-            Houseiana CRM
+            {t.appName}
           </h1>
-          <p className="mt-1 text-sm text-stone-500">Sign in to your account</p>
+          <p className="mt-1 text-sm text-stone-500">{t.signInToAccount}</p>
         </div>
 
         <Card className="rounded-3xl border-stone-200/80 shadow-sm">
@@ -53,11 +61,11 @@ export default function LoginPage() {
 
               <div>
                 <label className="mb-2 block text-sm font-medium text-stone-700">
-                  Email
+                  {t.email}
                 </label>
                 <Input
                   type="email"
-                  placeholder="Enter your email"
+                  placeholder={t.enterEmail}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="h-11 rounded-2xl border-stone-200"
@@ -67,11 +75,11 @@ export default function LoginPage() {
 
               <div>
                 <label className="mb-2 block text-sm font-medium text-stone-700">
-                  Password
+                  {t.password}
                 </label>
                 <Input
                   type="password"
-                  placeholder="Enter your password"
+                  placeholder={t.enterPassword}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="h-11 rounded-2xl border-stone-200"
@@ -84,14 +92,14 @@ export default function LoginPage() {
                 disabled={loading}
                 className="h-11 w-full rounded-2xl bg-stone-950 text-white hover:bg-stone-800"
               >
-                {loading ? "Signing in..." : "Sign in"}
+                {loading ? t.signingIn : t.signIn}
               </Button>
             </form>
           </CardContent>
         </Card>
 
         <p className="mt-6 text-center text-xs text-stone-400">
-          Houseiana Lead Control Center
+          {t.appSubtitle}
         </p>
       </div>
     </div>

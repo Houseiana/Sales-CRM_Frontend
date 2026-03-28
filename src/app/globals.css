@@ -11,3 +11,18 @@ body {
   color: var(--color-foreground);
   font-family: var(--font-sans);
 }
+
+/* RTL support */
+[dir="rtl"] {
+  text-align: right;
+}
+
+[dir="rtl"] .text-left {
+  text-align: right;
+}
+
+[dir="rtl"] input,
+[dir="rtl"] textarea,
+[dir="rtl"] select {
+  text-align: inherit;
+}
