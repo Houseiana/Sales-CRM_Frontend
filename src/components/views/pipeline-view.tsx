@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import {
   BadgeDollarSign,
   Target,
@@ -12,10 +13,24 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScoreBadge } from "@/components/score-badge";
 import { MiniLineChart } from "@/components/charts";
-import { pipeline } from "@/lib/data";
+import { pipeline as defaultPipeline } from "@/lib/data";
+import { salesLeadsApi, type SalesLead } from "@/lib/api";
 import type { LucideIcon } from "lucide-react";
 
 export function PipelineView() {
+  const [apiPipeline, setApiPipeline] = useState<Record<string, SalesLead[]> | null>(null);
+
+  useEffect(() => {
+    salesLeadsApi.getPipeline().then(setApiPipeline).catch(() => {});
+  }, []);
+
+  const pipeline = apiPipeline
+    ? Object.fromEntries(
+        Object.entries(apiPipeline).map(([stage, items]) => [
+          stage, items.map((l) => ({ name: l.name, badge: l.source, score: l.score })),
+        ])
+      )
+    : defaultPipeline;
   const summary: [string, string, LucideIcon][] = [
     ["Pipeline Value", "QAR 1.8M", BadgeDollarSign],
     ["Qualified Leads", "41", Target],

@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/lib/auth-context";
 import { SideNav } from "@/components/side-nav";
 import { TopBar } from "@/components/top-bar";
 import { DashboardView } from "@/components/views/dashboard-view";
@@ -10,6 +12,7 @@ import { TasksView } from "@/components/views/tasks-view";
 import { CommunicationsView } from "@/components/views/communications-view";
 import { ReportsView } from "@/components/views/reports-view";
 import { SettingsView } from "@/components/views/settings-view";
+import { TeamView } from "@/components/views/team-view";
 import type { ViewName } from "@/lib/data";
 
 const views: Record<ViewName, React.ComponentType> = {
@@ -20,10 +23,35 @@ const views: Record<ViewName, React.ComponentType> = {
   Communications: CommunicationsView,
   Reports: ReportsView,
   Settings: SettingsView,
+  Team: TeamView,
 };
 
 export default function Home() {
   const [view, setView] = useState<ViewName>("Dashboard");
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push("/login");
+    }
+  }, [user, loading, router]);
+
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-stone-50">
+        <div className="text-center">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-stone-950 text-lg font-semibold text-white">
+            H
+          </div>
+          <p className="text-sm text-stone-500">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) return null;
+
   const ActiveView = views[view];
 
   return (

@@ -14,8 +14,19 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useAuth } from "@/lib/auth-context";
 import { viewMeta, type ViewName } from "@/lib/data";
 import type { LucideIcon } from "lucide-react";
+
+function UserAvatar() {
+  const { user } = useAuth();
+  const initials = user?.name?.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase() || "ME";
+  return (
+    <Avatar className="h-11 w-11 rounded-2xl">
+      <AvatarFallback className="rounded-2xl bg-stone-950 text-white">{initials}</AvatarFallback>
+    </Avatar>
+  );
+}
 
 export function TopBar({ view }: { view: ViewName }) {
   const meta = viewMeta[view];
@@ -62,9 +73,7 @@ export function TopBar({ view }: { view: ViewName }) {
             <Bell className="h-5 w-5 text-stone-700" />
             <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-yellow-400" />
           </button>
-          <Avatar className="h-11 w-11 rounded-2xl">
-            <AvatarFallback className="rounded-2xl bg-stone-950 text-white">ME</AvatarFallback>
-          </Avatar>
+          <UserAvatar />
         </div>
       </div>
     </div>

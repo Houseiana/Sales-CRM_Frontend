@@ -1,13 +1,26 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+const API_BASE = "";
+
+function getAuthHeaders(): Record<string, string> {
+  if (typeof window === "undefined") return {};
+  const token = localStorage.getItem("crm_token");
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     headers: {
       "Content-Type": "application/json",
+      ...getAuthHeaders(),
       ...options?.headers,
     },
     ...options,
   });
+  if (res.status === 401 && typeof window !== "undefined" && !path.includes("/auth/")) {
+    localStorage.removeItem("crm_token");
+    localStorage.removeItem("crm_user");
+    window.location.href = "/login";
+    throw new Error("Session expired");
+  }
   if (!res.ok) {
     const err = await res.json().catch(() => ({ message: res.statusText }));
     throw new Error(err.message || `API error ${res.status}`);
@@ -15,6 +28,47 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   if (res.status === 204) return undefined as T;
   return res.json();
 }
+
+// ── Auth Types ──
+
+export interface CrmUser {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  avatar?: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface LoginResponse {
+  token: string;
+  user: CrmUser;
+}
+
+// ── Auth API ──
+
+export const authApi = {
+  login: (email: string, password: string) =>
+    request<LoginResponse>("/api/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    }),
+  me: () => request<CrmUser>("/api/auth/me"),
+};
+
+export const teamApi = {
+  getAll: () => request<CrmUser[]>("/api/team"),
+  getById: (id: string) => request<CrmUser>(`/api/team/${id}`),
+  create: (data: { email: string; password: string; name: string; role: string }) =>
+    request<CrmUser>("/api/team", { method: "POST", body: JSON.stringify(data) }),
+  update: (id: string, data: { email?: string; password?: string; name?: string; role?: string; isActive?: boolean }) =>
+    request<CrmUser>(`/api/team/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+  delete: (id: string) =>
+    request<void>(`/api/team/${id}`, { method: "DELETE" }),
+  deactivate: (id: string) =>
+    request<void>(`/api/team/${id}/deactivate`, { method: "PATCH" }),
+};
 
 // ── Types ──
 

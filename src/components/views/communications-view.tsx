@@ -1,15 +1,50 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Phone, Mail, MessageCircle, Send, Inbox } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
-import { conversations } from "@/lib/data";
+import { conversations as defaultConversations } from "@/lib/data";
+import { conversationsApi, type ConversationItem } from "@/lib/api";
 
 export function CommunicationsView() {
+  const [apiConvs, setApiConvs] = useState<ConversationItem[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [msgText, setMsgText] = useState("");
+
+  useEffect(() => {
+    conversationsApi.getAll().then((data) => {
+      setApiConvs(data);
+      if (data.length > 0) setSelectedId(data[0].id);
+    }).catch(() => {});
+  }, []);
+
+  const handleSend = async () => {
+    if (!selectedId || !msgText.trim()) return;
+    try {
+      await conversationsApi.sendMessage(selectedId, {
+        content: msgText, senderName: "Me", isFromAgent: true,
+      });
+      setMsgText("");
+      const updated = await conversationsApi.getAll();
+      setApiConvs(updated);
+    } catch { /* ignore */ }
+  };
+
+  const conversations = apiConvs.length > 0
+    ? apiConvs.map((c, i) => ({
+        name: c.leadName || "Unknown", channel: c.channel,
+        preview: c.lastMessage || "", time: new Date(c.updatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        unread: c.unreadCount, active: c.id === (selectedId || apiConvs[0]?.id),
+        id: c.id, messages: c.messages,
+      }))
+    : defaultConversations.map((c) => ({ ...c, id: c.name, messages: [] }));
+
   const activeConversation = conversations.find((c) => c.active) || conversations[0];
+  const activeMessages = apiConvs.find((c) => c.id === selectedId)?.messages || [];
 
   return (
     <div className="grid grid-cols-1 gap-4 xl:grid-cols-[0.42fr_0.58fr]">
@@ -28,8 +63,9 @@ export function CommunicationsView() {
         <CardContent className="space-y-2">
           {conversations.map((c) => (
             <div
-              key={c.name}
-              className={`flex items-start gap-3 rounded-2xl border p-3 transition ${
+              key={c.id}
+              onClick={() => setSelectedId(c.id)}
+              className={`flex cursor-pointer items-start gap-3 rounded-2xl border p-3 transition ${
                 c.active
                   ? "border-yellow-200 bg-yellow-50"
                   : "border-stone-200 hover:bg-stone-50"
@@ -93,54 +129,38 @@ export function CommunicationsView() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-4 rounded-2xl bg-stone-50 p-4">
-              <div className="flex gap-3">
-                <Avatar className="h-8 w-8 rounded-xl">
-                  <AvatarFallback className="rounded-xl bg-stone-950 text-xs text-white">
-                    OH
-                  </AvatarFallback>
-                </Avatar>
-                <div className="rounded-2xl rounded-tl-md bg-white p-3 shadow-sm">
-                  <p className="text-sm text-stone-700">
-                    Can Houseiana fully manage the unit? I have a 2BR in Lusail.
-                  </p>
-                  <p className="mt-1 text-xs text-stone-400">10:14 AM</p>
+              {activeMessages.map((msg) => (
+                <div key={msg.id} className={msg.isFromAgent ? "flex flex-row-reverse gap-3" : "flex gap-3"}>
+                  <Avatar className="h-8 w-8 rounded-xl">
+                    <AvatarFallback className={`rounded-xl text-xs ${msg.isFromAgent ? "bg-yellow-100 text-stone-950" : "bg-stone-950 text-white"}`}>
+                      {msg.senderName.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className={msg.isFromAgent
+                    ? "rounded-2xl rounded-tr-md bg-stone-950 p-3 text-white shadow-sm"
+                    : "rounded-2xl rounded-tl-md bg-white p-3 shadow-sm"
+                  }>
+                    <p className={`text-sm ${msg.isFromAgent ? "" : "text-stone-700"}`}>{msg.content}</p>
+                    <p className={`mt-1 text-xs ${msg.isFromAgent ? "text-white/50" : "text-stone-400"}`}>
+                      {new Date(msg.sentAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                    </p>
                 </div>
               </div>
-              <div className="flex flex-row-reverse gap-3">
-                <Avatar className="h-8 w-8 rounded-xl">
-                  <AvatarFallback className="rounded-xl bg-yellow-100 text-xs text-stone-950">
-                    ME
-                  </AvatarFallback>
-                </Avatar>
-                <div className="rounded-2xl rounded-tr-md bg-stone-950 p-3 text-white shadow-sm">
-                  <p className="text-sm">
-                    Absolutely. We offer full property management including listing, guest
-                    communication, and maintenance. Let me walk you through our packages.
-                  </p>
-                  <p className="mt-1 text-xs text-white/50">10:18 AM</p>
-                </div>
-              </div>
-              <div className="flex gap-3">
-                <Avatar className="h-8 w-8 rounded-xl">
-                  <AvatarFallback className="rounded-xl bg-stone-950 text-xs text-white">
-                    OH
-                  </AvatarFallback>
-                </Avatar>
-                <div className="rounded-2xl rounded-tl-md bg-white p-3 shadow-sm">
-                  <p className="text-sm text-stone-700">
-                    Great. What&apos;s the expected monthly return?
-                  </p>
-                  <p className="mt-1 text-xs text-stone-400">10:22 AM</p>
-                </div>
-              </div>
+              ))}
+              {activeMessages.length === 0 && (
+                <p className="py-4 text-center text-sm text-stone-400">No messages yet</p>
+              )}
             </div>
 
             <div className="flex gap-3">
               <Input
                 placeholder="Type a message..."
+                value={msgText}
+                onChange={(e) => setMsgText(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSend()}
                 className="h-11 flex-1 rounded-2xl border-stone-200"
               />
-              <Button className="h-11 rounded-2xl bg-stone-950 text-white hover:bg-stone-800">
+              <Button onClick={handleSend} className="h-11 rounded-2xl bg-stone-950 text-white hover:bg-stone-800">
                 <Send className="h-4 w-4" />
               </Button>
             </div>

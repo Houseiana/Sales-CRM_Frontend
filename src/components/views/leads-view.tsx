@@ -1,14 +1,16 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Users, Building2, UserPlus, Filter, Bookmark } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScoreBadge } from "@/components/score-badge";
-import { leads } from "@/lib/data";
+import { leads as defaultLeads } from "@/lib/data";
+import { salesLeadsApi, type SalesLead } from "@/lib/api";
 import type { LucideIcon } from "lucide-react";
 
-function LeadTable() {
+function LeadTable({ leads }: { leads: typeof defaultLeads }) {
   const headerClass =
     "grid-cols-[1.2fr_1fr_0.9fr_0.8fr_0.8fr_0.8fr_1fr_0.8fr_0.7fr]";
   return (
@@ -79,10 +81,28 @@ function LeadTable() {
 }
 
 export function LeadsView() {
+  const [apiLeads, setApiLeads] = useState<SalesLead[]>([]);
+
+  useEffect(() => {
+    salesLeadsApi.getAll({ pageSize: "50" }).then((r) => setApiLeads(r.items)).catch(() => {});
+  }, []);
+
+  const leads = apiLeads.length > 0
+    ? apiLeads.map((l) => ({
+        name: l.name, type: l.type, source: l.source, city: l.city || "",
+        budget: l.budget || "N/A", score: l.score, next: l.nextFollowUp ? new Date(l.nextFollowUp).toLocaleString() : "Not set",
+        agent: l.assignedAgentName || "Unassigned", language: l.language || "", status: l.stage,
+      }))
+    : defaultLeads;
+
+  const newCount = apiLeads.filter((l) => l.stage === "New Lead").length || 38;
+  const qualifiedCount = apiLeads.filter((l) => l.stage === "Qualified").length || 17;
+  const unassignedCount = apiLeads.filter((l) => !l.assignedAgentName).length || 9;
+
   const leadSummary: [string, string, LucideIcon][] = [
-    ["New Leads", "38", Users],
-    ["Qualified Owners", "17", Building2],
-    ["Need Assignment", "9", UserPlus],
+    ["New Leads", String(newCount), Users],
+    ["Qualified Owners", String(qualifiedCount), Building2],
+    ["Need Assignment", String(unassignedCount), UserPlus],
   ];
 
   return (
@@ -137,7 +157,7 @@ export function LeadsView() {
         </CardContent>
       </Card>
 
-      <LeadTable />
+      <LeadTable leads={leads} />
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
         {leads.slice(0, 3).map((lead) => (

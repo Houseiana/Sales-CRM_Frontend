@@ -195,7 +195,7 @@ export const reports = {
   ] as [string, string, string][],
 };
 
-export type ViewName = "Dashboard" | "Leads" | "Pipeline" | "Tasks" | "Communications" | "Reports" | "Settings";
+export type ViewName = "Dashboard" | "Leads" | "Pipeline" | "Tasks" | "Communications" | "Reports" | "Settings" | "Team";
 
 export const viewMeta: Record<
   ViewName,
@@ -249,6 +249,13 @@ export const viewMeta: Record<
     subtitle: "Configure permissions, automations, lead logic, and Houseiana workflow rules.",
     primary: "Save Changes",
     secondary: "Security",
+  },
+  Team: {
+    eyebrow: "Admin controls",
+    title: "Team management",
+    subtitle: "Create accounts, assign roles, and manage team member access.",
+    primary: "+ Add Member",
+    secondary: "Roles",
   },
 };
 

@@ -1,13 +1,35 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { AlertCircle, Flame, Send } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScoreBadge } from "@/components/score-badge";
-import { tasks } from "@/lib/data";
+import { tasks as defaultTasks } from "@/lib/data";
+import { salesTasksApi, type SalesTaskItem } from "@/lib/api";
 import type { LucideIcon } from "lucide-react";
 
 export function TasksView() {
+  const [apiTasks, setApiTasks] = useState<SalesTaskItem[]>([]);
+
+  useEffect(() => {
+    salesTasksApi.getAll().then(setApiTasks).catch(() => {});
+  }, []);
+
+  const tasks = apiTasks.length > 0
+    ? {
+        Today: apiTasks.filter((t) => !t.isCompleted).slice(0, 4).map((t) => ({
+          title: t.title, time: t.dueDate ? new Date(t.dueDate).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "", level: t.priority, owner: t.owner,
+        })),
+        Upcoming: apiTasks.filter((t) => !t.isCompleted).slice(4).map((t) => ({
+          title: t.title, time: t.dueDate ? new Date(t.dueDate).toLocaleDateString() : "", level: t.priority, owner: t.owner,
+        })),
+        Completed: apiTasks.filter((t) => t.isCompleted).map((t) => ({
+          title: t.title, time: t.completedAt ? new Date(t.completedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "", level: "Done", owner: t.owner,
+        })),
+      }
+    : defaultTasks;
+
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
