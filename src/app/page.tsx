@@ -58,7 +58,7 @@ export default function Home() {
     <div className="flex h-screen bg-stone-50">
       <SideNav view={view} setView={setView} />
       <div className="flex min-w-0 flex-1 flex-col overflow-y-auto">
-        <TopBar view={view} />
+        <TopBar view={view} setView={setView} />
         <main className="flex-1 px-4 py-6 md:px-6 xl:px-8">
           <ActiveView />
         </main>
