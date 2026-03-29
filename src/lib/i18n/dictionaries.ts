@@ -109,6 +109,7 @@ export interface Dictionary {
     loadingLeads: string;
     noLeadsFound: string;
     deleteLead: string;
+    nextFollowUp: string;
   };
 
   // ── Pipeline ──
@@ -421,7 +422,7 @@ export const en: Dictionary = {
     investors: "Investors", corporate: "Corporate", hot: "Hot", searchLeads: "Search leads...",
     lead: "Lead", type: "Type", source: "Source", city: "City", budget: "Budget",
     stage: "Stage", score: "Score", loadingLeads: "Loading leads...", noLeadsFound: "No leads found.",
-    deleteLead: "Delete this lead?",
+    deleteLead: "Delete this lead?", nextFollowUp: "Next Follow-up",
   },
 
   pipeline: {
@@ -601,7 +602,7 @@ export const ar: Dictionary = {
     investors: "مستثمرين", corporate: "شركات", hot: "ساخن", searchLeads: "ابحث عن عملاء...",
     lead: "العميل", type: "النوع", source: "المصدر", city: "المدينة", budget: "الميزانية",
     stage: "المرحلة", score: "التقييم", loadingLeads: "جارٍ تحميل العملاء...", noLeadsFound: "لا يوجد عملاء.",
-    deleteLead: "هل تريد حذف هذا العميل؟",
+    deleteLead: "هل تريد حذف هذا العميل؟", nextFollowUp: "المتابعة القادمة",
   },
 
   pipeline: {

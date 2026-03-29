@@ -232,7 +232,7 @@ export function LeadsView() {
                   <tr className="border-b border-stone-200 bg-stone-50 text-left text-xs font-semibold uppercase tracking-wider text-stone-500">
                     <th className="px-4 py-3">{t.leads.lead}</th><th className="px-4 py-3">{t.leads.type}</th><th className="px-4 py-3">{t.leads.source}</th>
                     <th className="px-4 py-3">{t.leads.city}</th><th className="px-4 py-3">{t.leads.budget}</th><th className="px-4 py-3">{t.leads.stage}</th>
-                    <th className="px-4 py-3">{t.leads.score}</th><th className="px-4 py-3">{t.actions}</th>
+                    <th className="px-4 py-3">{t.leads.score}</th><th className="px-4 py-3">{t.leads.nextFollowUp}</th><th className="px-4 py-3">{t.actions}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -248,6 +248,9 @@ export function LeadsView() {
                       <td className="px-4 py-3 text-stone-700">{lead.budget || "N/A"}</td>
                       <td className="px-4 py-3 text-stone-700">{lead.stage}</td>
                       <td className="px-4 py-3"><ScoreBadge value={lead.score} /></td>
+                      <td className="px-4 py-3 text-stone-700 whitespace-nowrap">
+                        {lead.nextFollowUp ? new Date(lead.nextFollowUp).toLocaleDateString() : <span className="text-stone-400">—</span>}
+                      </td>
                       <td className="px-4 py-3">
                         <div className="flex gap-1">
                           <button onClick={() => setViewLead(lead)} className="rounded-lg p-1.5 text-stone-400 hover:bg-stone-100 hover:text-stone-700" title={t.view}><Eye className="h-4 w-4" /></button>
