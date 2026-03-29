@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Users, Building2, UserPlus, Filter, Bookmark, Pencil, Trash2, Eye } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useEffect, useState, useMemo, useCallback } from "react";
+import { Users, Building2, UserPlus, Pencil, Trash2, Eye, RefreshCw, Flame, CalendarClock, MapPin } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -108,9 +108,10 @@ function LeadForm({ initial, onSubmit, loading }: {
 
 export function LeadsView() {
   const { canEdit, canDelete } = useAuth();
-  const { t } = useLocale();
-  const [leads, setLeads] = useState<SalesLead[]>([]);
+  const { t, isRTL } = useLocale();
+  const [allLeads, setAllLeads] = useState<SalesLead[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
   const [showCreate, setShowCreate] = useState(false);
@@ -119,19 +120,19 @@ export function LeadsView() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  const fetchLeads = async () => {
-    setLoading(true);
+  // Fetch ALL leads at once — filtering is done client-side for instant response
+  const fetchLeads = useCallback(async (isRefresh = false) => {
+    if (isRefresh) setRefreshing(true); else setLoading(true);
     try {
-      const params: Record<string, string> = { pageSize: "50" };
-      if (filter === "Hot") params.score = "Hot";
-      else if (filter !== "All" && filter !== "No Activity") params.type = filter === "Owners" ? "Property Owner" : filter === "Guests" ? "Guest Booking" : filter === "Investors" ? "Investor" : filter === "Corporate" ? "Corporate Booking" : "";
-      if (search) params.search = search;
-      const r = await salesLeadsApi.getAll(params);
-      setLeads(r.items);
-    } catch { /* ignore */ } finally { setLoading(false); }
-  };
+      const r = await salesLeadsApi.getAll({ pageSize: "200" });
+      setAllLeads(r.items);
+    } catch { /* ignore */ } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
 
-  useEffect(() => { fetchLeads(); }, [filter, search]);
+  useEffect(() => { fetchLeads(); }, [fetchLeads]);
 
   // Listen for top bar primary action
   useEffect(() => {
@@ -162,9 +163,39 @@ export function LeadsView() {
     try { await salesLeadsApi.delete(id); fetchLeads(); } catch { /* ignore */ }
   };
 
-  const newCount = leads.filter((l) => l.stage === "New Lead").length;
-  const qualifiedCount = leads.filter((l) => l.stage === "Qualified").length;
-  const unassignedCount = leads.filter((l) => !l.assignedAgentName).length;
+  // ── Client-side filtering (instant, no extra API call) ──
+  const filteredLeads = useMemo(() => {
+    let result = allLeads;
+    switch (filter) {
+      case "Owners":    result = result.filter((l) => l.type === "Property Owner"); break;
+      case "Guests":    result = result.filter((l) => l.type === "Guest Booking"); break;
+      case "Investors": result = result.filter((l) => l.type === "Investor"); break;
+      case "Corporate": result = result.filter((l) => l.type === "Corporate Booking"); break;
+      case "Hot":       result = result.filter((l) => l.score === "Hot"); break;
+    }
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      result = result.filter((l) =>
+        l.name.toLowerCase().includes(q) ||
+        (l.phone ?? "").toLowerCase().includes(q) ||
+        (l.email ?? "").toLowerCase().includes(q) ||
+        (l.city ?? "").toLowerCase().includes(q) ||
+        (l.source ?? "").toLowerCase().includes(q)
+      );
+    }
+    return result;
+  }, [allLeads, filter, search]);
+
+  // ── Top Priority leads (Hot or Priority score) ──
+  const topPriorityLeads = useMemo(
+    () => allLeads.filter((l) => l.score === "Hot" || l.score === "Priority").slice(0, 6),
+    [allLeads]
+  );
+
+  // ── Summary counts ──
+  const newCount = allLeads.filter((l) => l.stage === "New Lead").length;
+  const qualifiedCount = allLeads.filter((l) => l.stage === "Qualified").length;
+  const unassignedCount = allLeads.filter((l) => !l.assignedAgentName).length;
   const leadSummary: [string, string, LucideIcon][] = [
     [t.leads.newLeads, String(newCount), Users],
     [t.leads.qualified, String(qualifiedCount), Building2],
@@ -191,10 +222,16 @@ export function LeadsView() {
   }
 
   return (
-    <div className="space-y-4">
-      {error && <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">{error}<button onClick={() => setError("")} className="ml-2 font-semibold">{t.dismiss}</button></div>}
+    <div className="space-y-5">
+      {error && (
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+          {error}
+          <button onClick={() => setError("")} className="ml-2 font-semibold">{t.dismiss}</button>
+        </div>
+      )}
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+      {/* ── Summary Cards ── */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {leadSummary.map(([title, value, Icon]) => (
           <Card key={title} className="rounded-3xl border-stone-200/80 shadow-sm">
             <CardContent className="flex items-center justify-between p-5">
@@ -202,41 +239,143 @@ export function LeadsView() {
                 <p className="text-sm text-stone-500">{title}</p>
                 <p className="mt-2 text-3xl font-semibold text-stone-950">{value}</p>
               </div>
-              <div className="rounded-2xl bg-yellow-50 p-3 ring-1 ring-yellow-100"><Icon className="h-5 w-5 text-stone-900" /></div>
+              <div className="rounded-2xl bg-yellow-50 p-3 ring-1 ring-yellow-100">
+                <Icon className="h-5 w-5 text-stone-900" />
+              </div>
             </CardContent>
           </Card>
         ))}
       </div>
 
+      {/* ── Quick Access: Top Priority ── */}
+      <Card className="rounded-3xl border-stone-200/80 shadow-sm">
+        <CardContent className="p-5">
+          <div className="mb-4 flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-rose-50">
+              <Flame className="h-4 w-4 text-rose-500" />
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-stone-500">{t.leads.quickAccess}</p>
+              <p className="text-sm font-semibold text-stone-950">{t.leads.topPriority}</p>
+            </div>
+          </div>
+          {topPriorityLeads.length === 0 ? (
+            <p className="py-4 text-center text-sm text-stone-400">{t.leads.noTopPriority}</p>
+          ) : (
+            <div className="flex gap-3 overflow-x-auto pb-1">
+              {topPriorityLeads.map((lead) => (
+                <button
+                  key={lead.id}
+                  onClick={() => setViewLead(lead)}
+                  className="flex min-w-[200px] flex-col gap-2 rounded-2xl border border-stone-200 bg-white p-4 text-left shadow-sm transition hover:border-stone-400 hover:shadow-md"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <Avatar className="h-9 w-9 rounded-xl">
+                      <AvatarFallback className="rounded-xl bg-stone-950 text-xs text-white">
+                        {lead.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <ScoreBadge value={lead.score} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-stone-950 leading-tight">{lead.name}</p>
+                    <p className="text-xs text-stone-500">{lead.type}</p>
+                  </div>
+                  <div className="flex flex-col gap-1 text-xs text-stone-500">
+                    {lead.city && (
+                      <span className="flex items-center gap-1">
+                        <MapPin className="h-3 w-3" />{lead.city}
+                      </span>
+                    )}
+                    {lead.nextFollowUp && (
+                      <span className="flex items-center gap-1 text-amber-600">
+                        <CalendarClock className="h-3 w-3" />
+                        {new Date(lead.nextFollowUp).toLocaleDateString()}
+                      </span>
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ── Filter Bar ── */}
       <Card className="rounded-3xl border-stone-200/80 shadow-sm">
         <CardContent className="flex flex-col gap-4 p-5 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-wrap gap-2">
             {filterLabels.map(([key, label]) => (
-              <Button key={key} variant={filter === key ? "default" : "outline"} onClick={() => setFilter(key)}
-                className={`rounded-2xl ${filter === key ? "bg-stone-950 text-white hover:bg-stone-800" : "border-stone-200"}`}>{label}</Button>
+              <Button
+                key={key}
+                variant={filter === key ? "default" : "outline"}
+                onClick={() => setFilter(key)}
+                className={`rounded-2xl ${filter === key ? "bg-stone-950 text-white hover:bg-stone-800" : "border-stone-200 hover:bg-stone-50"}`}
+              >
+                {label}
+                {key !== "All" && (
+                  <span className={`${isRTL ? "mr-1.5" : "ml-1.5"} rounded-full bg-white/20 px-1.5 py-0.5 text-[10px] font-bold leading-none ${filter === key ? "text-white/80" : "bg-stone-100 text-stone-500"}`}>
+                    {key === "Hot"
+                      ? allLeads.filter((l) => l.score === "Hot").length
+                      : key === "Owners" ? allLeads.filter((l) => l.type === "Property Owner").length
+                      : key === "Guests" ? allLeads.filter((l) => l.type === "Guest Booking").length
+                      : key === "Investors" ? allLeads.filter((l) => l.type === "Investor").length
+                      : key === "Corporate" ? allLeads.filter((l) => l.type === "Corporate Booking").length
+                      : 0}
+                  </span>
+                )}
+              </Button>
             ))}
           </div>
           <div className="flex gap-2">
-            <Input placeholder={t.leads.searchLeads} value={search} onChange={(e) => setSearch(e.target.value)} className="h-10 w-48 rounded-2xl border-stone-200" />
-            {canEdit && <Button onClick={() => setShowCreate(true)} className="rounded-2xl bg-stone-950 text-white hover:bg-stone-800"><UserPlus className="mr-2 h-4 w-4" /> {t.leads.addLead}</Button>}
+            <Input
+              placeholder={t.leads.searchLeads}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="h-10 w-52 rounded-2xl border-stone-200"
+            />
+            <button
+              onClick={() => fetchLeads(true)}
+              disabled={refreshing}
+              title={t.leads.refresh}
+              className="flex h-10 w-10 items-center justify-center rounded-2xl border border-stone-200 bg-white text-stone-500 hover:bg-stone-50 disabled:opacity-50"
+            >
+              <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+            </button>
+            {canEdit && (
+              <Button onClick={() => setShowCreate(true)} className="rounded-2xl bg-stone-950 text-white hover:bg-stone-800">
+                <UserPlus className={`h-4 w-4 ${isRTL ? "ml-2" : "mr-2"}`} /> {t.leads.addLead}
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
 
+      {/* ── Leads Table ── */}
       <Card className="rounded-3xl border-stone-200/80 shadow-sm">
         <CardContent className="p-0">
-          {loading ? <p className="py-12 text-center text-sm text-stone-500">{t.leads.loadingLeads}</p> : leads.length === 0 ? <p className="py-12 text-center text-sm text-stone-500">{t.leads.noLeadsFound}</p> : (
+          {loading ? (
+            <p className="py-12 text-center text-sm text-stone-500">{t.leads.loadingLeads}</p>
+          ) : filteredLeads.length === 0 ? (
+            <p className="py-12 text-center text-sm text-stone-500">{t.leads.noLeadsFound}</p>
+          ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-stone-200 bg-stone-50 text-left text-xs font-semibold uppercase tracking-wider text-stone-500">
-                    <th className="px-4 py-3">{t.leads.lead}</th><th className="px-4 py-3">{t.leads.type}</th><th className="px-4 py-3">{t.leads.source}</th>
-                    <th className="px-4 py-3">{t.leads.city}</th><th className="px-4 py-3">{t.leads.budget}</th><th className="px-4 py-3">{t.leads.stage}</th>
-                    <th className="px-4 py-3">{t.leads.score}</th><th className="px-4 py-3">{t.leads.nextFollowUp}</th><th className="px-4 py-3">{t.actions}</th>
+                    <th className="px-4 py-3">{t.leads.lead}</th>
+                    <th className="px-4 py-3">{t.leads.type}</th>
+                    <th className="px-4 py-3">{t.leads.source}</th>
+                    <th className="px-4 py-3">{t.leads.city}</th>
+                    <th className="px-4 py-3">{t.leads.budget}</th>
+                    <th className="px-4 py-3">{t.leads.stage}</th>
+                    <th className="px-4 py-3">{t.leads.score}</th>
+                    <th className="px-4 py-3">{t.leads.nextFollowUp}</th>
+                    <th className="px-4 py-3">{t.actions}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {leads.map((lead) => (
+                  {filteredLeads.map((lead) => (
                     <tr key={lead.id} className="border-b border-stone-200 hover:bg-stone-50/70">
                       <td className="px-4 py-3">
                         <p className="font-semibold text-stone-950">{lead.name}</p>
@@ -244,12 +383,14 @@ export function LeadsView() {
                       </td>
                       <td className="px-4 py-3 text-stone-700">{lead.type}</td>
                       <td className="px-4 py-3 text-stone-700">{lead.source}</td>
-                      <td className="px-4 py-3 text-stone-700">{lead.city}</td>
-                      <td className="px-4 py-3 text-stone-700">{lead.budget || "N/A"}</td>
+                      <td className="px-4 py-3 text-stone-700">{lead.city || <span className="text-stone-400">—</span>}</td>
+                      <td className="px-4 py-3 text-stone-700">{lead.budget || <span className="text-stone-400">—</span>}</td>
                       <td className="px-4 py-3 text-stone-700">{lead.stage}</td>
                       <td className="px-4 py-3"><ScoreBadge value={lead.score} /></td>
-                      <td className="px-4 py-3 text-stone-700 whitespace-nowrap">
-                        {lead.nextFollowUp ? new Date(lead.nextFollowUp).toLocaleDateString() : <span className="text-stone-400">—</span>}
+                      <td className="px-4 py-3 whitespace-nowrap text-stone-700">
+                        {lead.nextFollowUp
+                          ? <span className="flex items-center gap-1"><CalendarClock className="h-3.5 w-3.5 text-amber-500" />{new Date(lead.nextFollowUp).toLocaleDateString()}</span>
+                          : <span className="text-stone-400">—</span>}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex gap-1">
@@ -267,47 +408,45 @@ export function LeadsView() {
         </CardContent>
       </Card>
 
-      {/* Lead Cards */}
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-        {leads.slice(0, 3).map((lead) => (
-          <Card key={lead.id} className="cursor-pointer rounded-3xl border-stone-200/80 shadow-sm hover:shadow-md" onClick={() => setViewLead(lead)}>
-            <CardContent className="p-5">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <Avatar className="h-11 w-11 rounded-2xl"><AvatarFallback className="rounded-2xl bg-stone-950 text-white">{lead.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}</AvatarFallback></Avatar>
-                  <div><p className="font-semibold text-stone-950">{lead.name}</p><p className="text-sm text-stone-500">{lead.type}</p></div>
-                </div>
-                <ScoreBadge value={lead.score} />
-              </div>
-              <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-                <div className="rounded-2xl bg-stone-50 p-3"><p className="text-stone-400">{t.leads.source}</p><p className="mt-1 font-medium text-stone-900">{lead.source}</p></div>
-                <div className="rounded-2xl bg-stone-50 p-3"><p className="text-stone-400">{t.preview.agent}</p><p className="mt-1 font-medium text-stone-900">{lead.assignedAgentName || t.leads.unassigned}</p></div>
-                <div className="rounded-2xl bg-stone-50 p-3"><p className="text-stone-400">{t.leads.city}</p><p className="mt-1 font-medium text-stone-900">{lead.city || "N/A"}</p></div>
-                <div className="rounded-2xl bg-stone-50 p-3"><p className="text-stone-400">{t.leads.stage}</p><p className="mt-1 font-medium text-stone-900">{lead.stage}</p></div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
+      {/* ── Modals ── */}
       <Modal open={!!editLead} onClose={() => setEditLead(null)} title={`${t.edit} ${editLead?.name || ""}`}>
         {editLead && <LeadForm initial={editLead} onSubmit={handleUpdate} loading={saving} />}
       </Modal>
       <Modal open={!!viewLead} onClose={() => setViewLead(null)} title={viewLead?.name || ""}>
         {viewLead && (
           <div className="space-y-3">
-            {[[t.email, viewLead.email], [t.createLead.mobileWhatsapp, viewLead.phone], [t.leads.type, viewLead.type], [t.leads.source, viewLead.source],
-              [t.leads.stage, viewLead.stage], [t.leads.score, viewLead.score], [t.leads.city, viewLead.city], [t.createLead.country, viewLead.country],
-              [t.createLead.preferredLanguage, viewLead.language], [t.leads.budget, viewLead.budget], [t.createLead.targetLocation, viewLead.targetArea],
-              [t.preview.agent, viewLead.assignedAgentName], [t.createLead.internalNotes, viewLead.notes]].filter(([, v]) => v).map(([label, value]) => (
-              <div key={label} className="flex justify-between rounded-xl border border-stone-200 px-4 py-2.5">
+            {[
+              [t.email, viewLead.email],
+              [t.createLead.mobileWhatsapp, viewLead.phone],
+              [t.leads.type, viewLead.type],
+              [t.leads.source, viewLead.source],
+              [t.leads.stage, viewLead.stage],
+              [t.leads.score, viewLead.score],
+              [t.leads.city, viewLead.city],
+              [t.createLead.country, viewLead.country],
+              [t.createLead.preferredLanguage, viewLead.language],
+              [t.leads.budget, viewLead.budget],
+              [t.createLead.targetLocation, viewLead.targetArea],
+              [t.leads.nextFollowUp, viewLead.nextFollowUp ? new Date(viewLead.nextFollowUp).toLocaleString() : undefined],
+              [t.preview.agent, viewLead.assignedAgentName],
+              [t.createLead.internalNotes, viewLead.notes],
+            ].filter(([, v]) => v).map(([label, value]) => (
+              <div key={String(label)} className="flex justify-between rounded-xl border border-stone-200 px-4 py-2.5">
                 <span className="text-sm text-stone-500">{label}</span>
                 <span className="text-sm font-medium text-stone-900">{value}</span>
               </div>
             ))}
             <div className="flex gap-2 pt-2">
-              {canEdit && <Button onClick={() => { setViewLead(null); setEditLead(viewLead); }} className="flex-1 rounded-xl bg-stone-950 text-white hover:bg-stone-800"><Pencil className="mr-2 h-4 w-4" />{t.edit}</Button>}
-              {canDelete && <Button variant="outline" onClick={() => { handleDelete(viewLead.id); setViewLead(null); }} className="rounded-xl border-rose-200 text-rose-600 hover:bg-rose-50"><Trash2 className="h-4 w-4" /></Button>}
+              {canEdit && (
+                <Button onClick={() => { setViewLead(null); setEditLead(viewLead); }} className="flex-1 rounded-xl bg-stone-950 text-white hover:bg-stone-800">
+                  <Pencil className={`h-4 w-4 ${isRTL ? "ml-2" : "mr-2"}`} />{t.edit}
+                </Button>
+              )}
+              {canDelete && (
+                <Button variant="outline" onClick={() => { handleDelete(viewLead.id); setViewLead(null); }} className="rounded-xl border-rose-200 text-rose-600 hover:bg-rose-50">
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
             </div>
           </div>
         )}

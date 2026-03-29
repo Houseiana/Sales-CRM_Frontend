@@ -110,6 +110,10 @@ export interface Dictionary {
     noLeadsFound: string;
     deleteLead: string;
     nextFollowUp: string;
+    refresh: string;
+    quickAccess: string;
+    topPriority: string;
+    noTopPriority: string;
   };
 
   // ── Pipeline ──
@@ -423,6 +427,7 @@ export const en: Dictionary = {
     lead: "Lead", type: "Type", source: "Source", city: "City", budget: "Budget",
     stage: "Stage", score: "Score", loadingLeads: "Loading leads...", noLeadsFound: "No leads found.",
     deleteLead: "Delete this lead?", nextFollowUp: "Next Follow-up",
+    refresh: "Refresh", quickAccess: "Quick Access", topPriority: "Top Priority Leads", noTopPriority: "No hot or priority leads right now.",
   },
 
   pipeline: {
@@ -603,6 +608,7 @@ export const ar: Dictionary = {
     lead: "العميل", type: "النوع", source: "المصدر", city: "المدينة", budget: "الميزانية",
     stage: "المرحلة", score: "التقييم", loadingLeads: "جارٍ تحميل العملاء...", noLeadsFound: "لا يوجد عملاء.",
     deleteLead: "هل تريد حذف هذا العميل؟", nextFollowUp: "المتابعة القادمة",
+    refresh: "تحديث", quickAccess: "وصول سريع", topPriority: "أعلى الفرص أولوية", noTopPriority: "لا توجد فرص ساخنة أو ذات أولوية الآن.",
   },
 
   pipeline: {
