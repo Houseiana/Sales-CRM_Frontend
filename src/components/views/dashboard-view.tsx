@@ -25,7 +25,6 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScoreBadge } from "@/components/score-badge";
 import { MiniBarChart } from "@/components/charts";
-import { stats as defaultStats, leads as defaultLeads, pipeline as defaultPipeline, timeline, tasks as defaultTasks, reports as defaultReports } from "@/lib/data";
 import { salesLeadsApi, salesTasksApi, type SalesLead, type DashboardData, type SalesTaskItem } from "@/lib/api";
 import { useLocale } from "@/lib/i18n/locale-context";
 import type { Dictionary } from "@/lib/i18n/dictionaries";
@@ -38,7 +37,11 @@ const timelineIcons: Record<string, LucideIcon> = {
   CheckSquare,
 };
 
-function StatCards({ statsData }: { statsData: typeof defaultStats }) {
+type StatItem = { label: string; value: string; change: string; sub: string };
+type ReportsData = { sources: [string, string][]; team: [string, string, string][] };
+type TaskItem = { title: string; time: string; level: string; owner: string };
+
+function StatCards({ statsData }: { statsData: StatItem[] }) {
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-4">
       {statsData.map((stat, i) => (
@@ -75,7 +78,7 @@ function StatCards({ statsData }: { statsData: typeof defaultStats }) {
   );
 }
 
-function AnalyticsSection({ reportsData, t }: { reportsData: typeof defaultReports; t: Dictionary }) {
+function AnalyticsSection({ reportsData, t }: { reportsData: ReportsData; t: Dictionary }) {
   return (
     <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.3fr_0.7fr]">
       <Card className="rounded-3xl border-stone-200/80 shadow-sm">
@@ -231,7 +234,8 @@ function PipelineBoardCompact({ pipelineData, t }: { pipelineData: Record<string
   );
 }
 
-function LeadTableCompact({ leadsData, t }: { leadsData: typeof defaultLeads; t: Dictionary }) {
+type LeadRow = { name: string; type: string; source: string; city: string; budget: string; score: string; next: string; agent: string; language: string; status: string };
+function LeadTableCompact({ leadsData, t }: { leadsData: LeadRow[]; t: Dictionary }) {
   const headerClass = "grid-cols-[1.2fr_1fr_0.9fr_0.8fr_0.8fr_1fr_0.7fr]";
   const filterLabels = [t.all, t.leads.owners, t.leads.guests, t.leads.investors, t.leads.hot];
   return (
@@ -298,16 +302,28 @@ function LeadTableCompact({ leadsData, t }: { leadsData: typeof defaultLeads; t:
 }
 
 function LeadProfileCard({ lead, t }: { lead?: SalesLead; t: Dictionary }) {
+  if (!lead) {
+    return (
+      <Card className="rounded-3xl border-stone-200/80 shadow-sm">
+        <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+          <div className="rounded-2xl bg-stone-100 p-4 mb-3">
+            <UserRound className="h-6 w-6 text-stone-400" />
+          </div>
+          <p className="text-sm text-stone-500">{t.leads.noLeadsFound}</p>
+        </CardContent>
+      </Card>
+    );
+  }
   const details: { icon: LucideIcon; label: string; value: string }[] = [
-    { icon: Phone, label: t.createLead.mobileWhatsapp, value: lead?.phone || "+974 5555 1298" },
-    { icon: Mail, label: t.createLead.emailAddress, value: lead?.email || "omar.hassan@email.com" },
-    { icon: Globe, label: t.createLead.preferredLanguage, value: lead?.language || "Arabic / English" },
-    { icon: BadgeDollarSign, label: t.createLead.expectedPrice, value: lead?.budget || "High-value owner" },
-    { icon: MapPin, label: t.createLead.targetLocation, value: lead?.targetArea || "Lusail / The Pearl" },
-    { icon: CalendarClock, label: t.createLead.nextFollowUp, value: lead?.nextFollowUp ? new Date(lead.nextFollowUp).toLocaleString() : "Call today at 4:00 PM" },
+    { icon: Phone, label: t.createLead.mobileWhatsapp, value: lead.phone || "—" },
+    { icon: Mail, label: t.createLead.emailAddress, value: lead.email || "—" },
+    { icon: Globe, label: t.createLead.preferredLanguage, value: lead.language || "—" },
+    { icon: BadgeDollarSign, label: t.createLead.expectedPrice, value: lead.budget || "—" },
+    { icon: MapPin, label: t.createLead.targetLocation, value: lead.targetArea || "—" },
+    { icon: CalendarClock, label: t.createLead.nextFollowUp, value: lead.nextFollowUp ? new Date(lead.nextFollowUp).toLocaleString() : "—" },
   ];
-  const displayName = lead?.name || "Omar Hassan";
-  const initials = displayName.split(" ").map((n) => n[0]).join("").slice(0, 2);
+  const displayName = lead.name;
+  const initials = displayName.split(" ").map((n: string) => n[0]).join("").slice(0, 2);
 
   return (
     <Card className="rounded-3xl border-stone-200/80 shadow-sm">
@@ -321,10 +337,10 @@ function LeadProfileCard({ lead, t }: { lead?: SalesLead; t: Dictionary }) {
             </Avatar>
             <div>
               <CardTitle className="text-xl text-stone-950">{displayName}</CardTitle>
-              <p className="mt-1 text-sm text-stone-500">{lead?.type || "Property Owner"} • {lead?.source || "Meta Ads"} • {lead?.city || "Doha"}</p>
+              <p className="mt-1 text-sm text-stone-500">{lead.type} • {lead.source} • {lead.city || "—"}</p>
             </div>
           </div>
-          <ScoreBadge value={lead?.score || "Priority"} />
+          <ScoreBadge value={lead.score} />
         </div>
       </CardHeader>
       <CardContent className="space-y-5">
@@ -364,7 +380,15 @@ function LeadProfileCard({ lead, t }: { lead?: SalesLead; t: Dictionary }) {
   );
 }
 
-function ActivityTimeline({ t }: { t: Dictionary }) {
+function ActivityTimeline({ lead, t }: { lead?: SalesLead; t: Dictionary }) {
+  // Timeline is built from the selected lead's real data
+  const entries: { icon: LucideIcon; title: string; time: string; text: string }[] = [];
+  if (lead) {
+    if (lead.createdAt) entries.push({ icon: CircleDot, title: t.dashboard.leadCreated, time: new Date(lead.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }), text: `${lead.type} · ${lead.source}` });
+    if (lead.nextFollowUp) entries.push({ icon: CalendarClock, title: t.dashboard.followUpScheduled, time: new Date(lead.nextFollowUp).toLocaleDateString(), text: `${lead.assignedAgentName || t.leads.unassigned}` });
+    if (lead.score === "Hot" || lead.score === "Priority") entries.push({ icon: Flame, title: t.dashboard.markedHot, time: "", text: `${t.dashboard.score}: ${lead.score}` });
+  }
+
   return (
     <Card className="rounded-3xl border-stone-200/80 shadow-sm">
       <CardHeader>
@@ -372,34 +396,43 @@ function ActivityTimeline({ t }: { t: Dictionary }) {
         <p className="text-sm text-stone-500">{t.dashboard.allTouchpoints}</p>
       </CardHeader>
       <CardContent>
-        <div className="space-y-5">
-          {timeline.map((item, i) => {
-            const Icon = timelineIcons[item.iconName];
-            return (
-              <div key={item.title} className="flex gap-4">
-                <div className="flex flex-col items-center">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-stone-950 text-white shadow-sm">
-                    <Icon className="h-4 w-4" />
+        {entries.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <div className="rounded-2xl bg-stone-100 p-4 mb-3">
+              <CircleDot className="h-6 w-6 text-stone-400" />
+            </div>
+            <p className="text-sm text-stone-500">{t.dashboard.noActivity}</p>
+          </div>
+        ) : (
+          <div className="space-y-5">
+            {entries.map((item, i) => {
+              const Icon = item.icon;
+              return (
+                <div key={item.title} className="flex gap-4">
+                  <div className="flex flex-col items-center">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-stone-950 text-white shadow-sm">
+                      <Icon className="h-4 w-4" />
+                    </div>
+                    {i < entries.length - 1 && <div className="mt-2 h-full w-px bg-stone-200" />}
                   </div>
-                  {i < timeline.length - 1 && <div className="mt-2 h-full w-px bg-stone-200" />}
-                </div>
-                <div className="pb-2">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="font-semibold text-stone-950">{item.title}</p>
-                    <span className="text-xs text-stone-400">{item.time}</span>
+                  <div className="pb-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="font-semibold text-stone-950">{item.title}</p>
+                      {item.time && <span className="text-xs text-stone-400">{item.time}</span>}
+                    </div>
+                    <p className="mt-1 text-sm leading-6 text-stone-600">{item.text}</p>
                   </div>
-                  <p className="mt-1 text-sm leading-6 text-stone-600">{item.text}</p>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
 }
 
-function RightRail({ tasksData, reportsData, t }: { tasksData: Record<string, { title: string; time: string; level: string; owner: string }[]>; reportsData: typeof defaultReports; t: Dictionary }) {
+function RightRail({ tasksData, reportsData, t }: { tasksData: Record<string, TaskItem[]>; reportsData: ReportsData; t: Dictionary }) {
   return (
     <div className="space-y-4">
       <Card className="rounded-3xl border-stone-200/80 shadow-sm">
@@ -473,32 +506,35 @@ export function DashboardView() {
     salesTasksApi.getAll({ status: "today" }).then(setApiTasks).catch(() => {});
   }, []);
 
-  // Use API data when available, fall back to static
-  const stats = dashboard
+  // Build stats from API — zeros while loading
+  const stats: StatItem[] = dashboard
     ? [
-        { label: t.dashboard.totalLeads, value: String(dashboard.totalLeads), change: "+12.4%", sub: t.dashboard.vsLastMonth },
-        { label: t.dashboard.newToday, value: String(dashboard.newToday), change: "+8.1%", sub: t.dashboard.freshInbound },
-        { label: t.dashboard.hotLeads, value: String(dashboard.hotLeads), change: "+21.0%", sub: t.dashboard.priorityFollowUp },
-        { label: t.dashboard.conversionRate, value: `${dashboard.conversionRate}%`, change: "+2.3%", sub: t.dashboard.qualifiedToWon },
+        { label: t.dashboard.totalLeads, value: String(dashboard.totalLeads), change: "", sub: t.dashboard.vsLastMonth },
+        { label: t.dashboard.newToday, value: String(dashboard.newToday), change: "", sub: t.dashboard.freshInbound },
+        { label: t.dashboard.hotLeads, value: String(dashboard.hotLeads), change: "", sub: t.dashboard.priorityFollowUp },
+        { label: t.dashboard.conversionRate, value: `${dashboard.conversionRate}%`, change: "", sub: t.dashboard.qualifiedToWon },
       ]
-    : defaultStats;
+    : [
+        { label: t.dashboard.totalLeads, value: "—", change: "", sub: "" },
+        { label: t.dashboard.newToday, value: "—", change: "", sub: "" },
+        { label: t.dashboard.hotLeads, value: "—", change: "", sub: "" },
+        { label: t.dashboard.conversionRate, value: "—", change: "", sub: "" },
+      ];
 
-  const leads = apiLeads.length > 0
-    ? apiLeads.map((l) => ({
-        name: l.name,
-        type: l.type,
-        source: l.source,
-        city: l.city || "",
-        budget: l.budget || "N/A",
-        score: l.score,
-        next: l.nextFollowUp ? new Date(l.nextFollowUp).toLocaleString() : "Not set",
-        agent: l.assignedAgentName || t.leads.unassigned,
-        language: l.language || "",
-        status: l.stage,
-      }))
-    : defaultLeads;
+  const leads: LeadRow[] = apiLeads.map((l) => ({
+    name: l.name,
+    type: l.type,
+    source: l.source,
+    city: l.city || "",
+    budget: l.budget || "—",
+    score: l.score,
+    next: l.nextFollowUp ? new Date(l.nextFollowUp).toLocaleString() : "—",
+    agent: l.assignedAgentName || t.leads.unassigned,
+    language: l.language || "",
+    status: l.stage,
+  }));
 
-  const reports = dashboard
+  const reports: ReportsData = dashboard
     ? {
         sources: Object.entries(dashboard.sourceCounts)
           .sort((a, b) => b[1] - a[1])
@@ -508,7 +544,7 @@ export function DashboardView() {
           (ts) => [ts.name, `${ts.leadsHandled} ${t.reports.leadsHandled}`, `${ts.winRate}% ${t.reports.winRate}`] as [string, string, string]
         ),
       }
-    : defaultReports;
+    : { sources: [], team: [] };
 
   const pipeline = apiPipeline
     ? Object.fromEntries(
@@ -517,15 +553,15 @@ export function DashboardView() {
           items.map((l) => ({ name: l.name, badge: l.source, score: l.score })),
         ])
       )
-    : defaultPipeline;
+    : {};
 
-  const tasks = apiTasks.length > 0
+  const tasks: Record<string, TaskItem[]> = apiTasks.length > 0
     ? {
         Today: apiTasks.filter((tk) => !tk.isCompleted).slice(0, 3).map((tk) => ({
           title: tk.title, time: tk.dueDate ? new Date(tk.dueDate).toLocaleTimeString() : "", level: tk.priority, owner: tk.owner,
         })),
       }
-    : defaultTasks;
+    : { Today: [] };
 
   return (
     <div className="space-y-4">
@@ -535,7 +571,7 @@ export function DashboardView() {
           <h2 className="text-xl font-semibold tracking-tight text-stone-950">{t.nav.dashboard}</h2>
         </div>
         <div className="flex flex-wrap gap-2">
-          {[`${t.dashboard.followupsDue}: ${dashboard?.tasksDueToday ?? 12}`, `${t.dashboard.missed}: ${dashboard?.overdueTasks ?? 3}`, `${t.dashboard.wonThisWeek}: 9`].map((item) => (
+          {[`${t.dashboard.followupsDue}: ${dashboard?.tasksDueToday ?? "—"}`, `${t.dashboard.missed}: ${dashboard?.overdueTasks ?? "—"}`, `${t.dashboard.wonThisWeek}: ${dashboard ? dashboard.teamStats.reduce((a, ts) => a + ts.wonCount, 0) : "—"}`].map((item) => (
             <Badge key={item} className="rounded-full border border-stone-200 bg-white text-stone-700">
               {item}
             </Badge>
@@ -554,7 +590,7 @@ export function DashboardView() {
 
       <div className="grid grid-cols-1 gap-4 2xl:grid-cols-[0.9fr_1.1fr]">
         <LeadProfileCard lead={apiLeads[0]} t={t} />
-        <ActivityTimeline t={t} />
+        <ActivityTimeline lead={apiLeads[0]} t={t} />
       </div>
     </div>
   );

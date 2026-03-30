@@ -1,14 +1,36 @@
 "use client";
 
-import { UserRound, ChartNoAxesColumn } from "lucide-react";
+import { useEffect, useState } from "react";
+import { UserRound, ChartNoAxesColumn, BarChart3 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MiniBarChart, MiniLineChart } from "@/components/charts";
-import { reports } from "@/lib/data";
+import { salesLeadsApi, type DashboardData } from "@/lib/api";
 import { useLocale } from "@/lib/i18n/locale-context";
 
 export function ReportsView() {
   const { t } = useLocale();
+  const [dashboard, setDashboard] = useState<DashboardData | null>(null);
+
+  useEffect(() => {
+    salesLeadsApi.getDashboard().then(setDashboard).catch(() => {});
+  }, []);
+
+  const sources: [string, string][] = dashboard
+    ? Object.entries(dashboard.sourceCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([s, c]) => [s, `${Math.round((c / Math.max(dashboard.totalLeads, 1)) * 100)}%`])
+    : [];
+
+  const team: [string, string, string][] = dashboard
+    ? dashboard.teamStats.map((ts) => [
+        ts.name,
+        `${ts.leadsHandled} ${t.reports.leadsHandled}`,
+        `${ts.winRate}% ${t.reports.winRate}`,
+      ])
+    : [];
+
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
@@ -51,17 +73,26 @@ export function ReportsView() {
             <p className="text-sm text-stone-500">{t.dashboard.topChannels}</p>
           </CardHeader>
           <CardContent className="space-y-4">
-            {reports.sources.map(([source, value]) => (
-              <div key={source}>
-                <div className="mb-2 flex items-center justify-between text-sm">
-                  <span className="font-medium text-stone-800">{source}</span>
-                  <span className="text-stone-500">{value}</span>
+            {sources.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-10 text-center">
+                <div className="rounded-2xl bg-stone-100 p-4 mb-3">
+                  <BarChart3 className="h-5 w-5 text-stone-400" />
                 </div>
-                <div className="h-2 rounded-full bg-stone-100">
-                  <div className="h-2 rounded-full bg-stone-900" style={{ width: value }} />
-                </div>
+                <p className="text-sm text-stone-500">{t.leads.noLeadsFound}</p>
               </div>
-            ))}
+            ) : (
+              sources.map(([source, value]) => (
+                <div key={source}>
+                  <div className="mb-2 flex items-center justify-between text-sm">
+                    <span className="font-medium text-stone-800">{source}</span>
+                    <span className="text-stone-500">{value}</span>
+                  </div>
+                  <div className="h-2 rounded-full bg-stone-100">
+                    <div className="h-2 rounded-full bg-stone-900" style={{ width: value }} />
+                  </div>
+                </div>
+              ))
+            )}
           </CardContent>
         </Card>
 
@@ -75,25 +106,34 @@ export function ReportsView() {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            {reports.team.map(([name, meta, winRate]) => (
-              <div
-                key={name}
-                className="flex items-center justify-between rounded-2xl border border-stone-200 p-4"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-stone-100">
-                    <UserRound className="h-5 w-5 text-stone-700" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-stone-900">{name}</p>
-                    <p className="text-sm text-stone-500">{meta}</p>
-                  </div>
+            {team.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-10 text-center">
+                <div className="rounded-2xl bg-stone-100 p-4 mb-3">
+                  <UserRound className="h-5 w-5 text-stone-400" />
                 </div>
-                <Badge className="rounded-full border border-emerald-200 bg-emerald-50 text-emerald-800">
-                  {winRate}
-                </Badge>
+                <p className="text-sm text-stone-500">{t.leads.noLeadsFound}</p>
               </div>
-            ))}
+            ) : (
+              team.map(([name, meta, winRate]) => (
+                <div
+                  key={name}
+                  className="flex items-center justify-between rounded-2xl border border-stone-200 p-4"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-stone-100">
+                      <UserRound className="h-5 w-5 text-stone-700" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-stone-900">{name}</p>
+                      <p className="text-sm text-stone-500">{meta}</p>
+                    </div>
+                  </div>
+                  <Badge className="rounded-full border border-emerald-200 bg-emerald-50 text-emerald-800">
+                    {winRate}
+                  </Badge>
+                </div>
+              ))
+            )}
           </CardContent>
         </Card>
       </div>

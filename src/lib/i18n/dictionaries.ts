@@ -84,6 +84,11 @@ export interface Dictionary {
     todaysFocus: string;
     todaysFocusText: string;
     openTasks: string;
+    noActivity: string;
+    leadCreated: string;
+    followUpScheduled: string;
+    markedHot: string;
+    score: string;
   };
 
   // ── Leads ──
@@ -418,6 +423,11 @@ export const en: Dictionary = {
     showingWorkspace: "Showing the current workspace",
     todaysFocus: "Today's focus", todaysFocusText: "follow-ups are due today. hot leads need immediate action.",
     openTasks: "Open Tasks",
+    noActivity: "No activity recorded yet",
+    leadCreated: "Lead created",
+    followUpScheduled: "Follow-up scheduled",
+    markedHot: "Marked as hot",
+    score: "Score",
   },
 
   leads: {
@@ -599,6 +609,11 @@ export const ar: Dictionary = {
     showingWorkspace: "عرض مساحة العمل الحالية",
     todaysFocus: "تركيز اليوم", todaysFocusText: "متابعات مستحقة اليوم. عملاء ساخنين يحتاجون إجراء فوري.",
     openTasks: "فتح المهام",
+    noActivity: "لا توجد أنشطة مسجلة بعد",
+    leadCreated: "تم إنشاء العميل",
+    followUpScheduled: "تم جدولة المتابعة",
+    markedHot: "تم التصنيف ساخن",
+    score: "التقييم",
   },
 
   leads: {

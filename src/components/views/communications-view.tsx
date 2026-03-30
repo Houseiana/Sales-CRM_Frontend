@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
-import { conversations as defaultConversations } from "@/lib/data";
 import { conversationsApi, type ConversationItem } from "@/lib/api";
 import { useLocale } from "@/lib/i18n/locale-context";
 
@@ -36,14 +35,12 @@ export function CommunicationsView() {
     } catch { /* ignore */ }
   };
 
-  const conversations = apiConvs.length > 0
-    ? apiConvs.map((c, i) => ({
-        name: c.leadName || "Unknown", channel: c.channel,
-        preview: c.lastMessage || "", time: new Date(c.updatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-        unread: c.unreadCount, active: c.id === (selectedId || apiConvs[0]?.id),
-        id: c.id, messages: c.messages,
-      }))
-    : defaultConversations.map((c) => ({ ...c, id: c.name, messages: [] }));
+  const conversations = apiConvs.map((c) => ({
+    name: c.leadName || "Unknown", channel: c.channel,
+    preview: c.lastMessage || "", time: new Date(c.updatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    unread: c.unreadCount, active: c.id === (selectedId || apiConvs[0]?.id),
+    id: c.id, messages: c.messages,
+  }));
 
   const activeConversation = conversations.find((c) => c.active) || conversations[0];
   const activeMessages = apiConvs.find((c) => c.id === selectedId)?.messages || [];
