@@ -16,6 +16,11 @@ export function ReportsView() {
     salesLeadsApi.getDashboard().then(setDashboard).catch(() => {});
   }, []);
 
+  // Pipeline bar chart: real counts per stage from API
+  const STAGE_ORDER = ["New Lead", "Contacted", "Qualified", "Proposal", "Negotiation", "Won", "Lost"];
+  const barData   = dashboard ? STAGE_ORDER.map((s) => dashboard.pipelineCounts[s] ?? 0) : undefined;
+  const barLabels = STAGE_ORDER.map((s) => s.split(" ")[0]);
+
   const sources: [string, string][] = dashboard
     ? Object.entries(dashboard.sourceCounts)
         .sort((a, b) => b[1] - a[1])
@@ -49,7 +54,7 @@ export function ReportsView() {
             </div>
           </CardHeader>
           <CardContent>
-            <MiniBarChart />
+            <MiniBarChart data={barData} labels={barLabels} />
           </CardContent>
         </Card>
 
@@ -61,7 +66,7 @@ export function ReportsView() {
             </p>
           </CardHeader>
           <CardContent>
-            <MiniLineChart />
+            <MiniLineChart data={undefined} />
           </CardContent>
         </Card>
       </div>
